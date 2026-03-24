@@ -1332,7 +1332,7 @@ void processCommands() {
         // --- 拦截条件：没回零，或者按了东且东面锁死，或者按了西且西面锁死 ---
         if (!systemHasHomed || (command[1] == 'e' && Axis1_LimitLock == 1) || (command[1] == 'w' && Axis1_LimitLock == -1)) {
             boolReply = false;       // 告诉底层：不用返回字符
-            commandError = CE_NONE;  // 【核心修改】：伪装成无错误！彻底阻止底层向蓝牙疯狂吐日志！
+            commandError = CE_NONE;  // 核心修改：伪装成无错误，彻底阻止底层向蓝牙疯狂发日志
         } else {
             // 如果通过了安全检查，才允许执行电机转动
             commandError=startGuideAxis1(command[1],currentGuideRate,GUIDE_TIME_LIMIT*1000,false);
@@ -1348,7 +1348,7 @@ void processCommands() {
         // --- 拦截条件：没回零，或者按了北且北面锁死，或者按了南且南面锁死 ---
         if (!systemHasHomed || (command[1] == 'n' && Axis2_LimitLock == 1) || (command[1] == 's' && Axis2_LimitLock == -1)) {
             boolReply = false;       // 告诉底层：不用返回字符
-            commandError = CE_NONE;  // 【核心修改】：伪装成无错误！
+            commandError = CE_NONE;  // 核心修改：伪装成无错误
         } else {
             // 如果通过了安全检查，才允许执行电机转动
             commandError=startGuideAxis2(command[1],currentGuideRate,GUIDE_TIME_LIMIT*1000,false);
