@@ -78,10 +78,9 @@
 
 ## 💻 固件配置与刷写
 
+谐波赤道仪的主控搭载了 **ESP32-WROOM-32E (16MB)**，这款大容量核心不仅能轻松运行复杂的 [OnStep / OnStepX](https://onstep.groups.io/g/main/wiki) 固件，还为内置星表、高精度对位模型 (Pointing Model) 以及功能丰富的 Smart Web UI 留出了充足的存储空间
+
 请参阅 [Firmware_Setup.md](https://github.com/LeoJohn233/DIY-Harmonic-Equatorial-Mount/blob/main/software/Firmware_Setup.md) 获取完整的 `Config.h` 参数表及详细引脚映射
-
-谐波赤道仪的主控搭载了 **ESP32-WROOM-32E (16MB)，ESP**，这款大容量核心不仅能轻松运行复杂的 [OnStep / OnStepX](https://onstep.groups.io/g/main/wiki) 固件，还为内置星表、高精度对位模型 (Pointing Model) 以及功能丰富的 Smart Web UI 留出了充足的存储空间
-
 ---
 
 ## 🛠️ 机械部分组装指南
