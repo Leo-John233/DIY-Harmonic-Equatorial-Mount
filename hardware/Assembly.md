@@ -38,9 +38,9 @@
 5.  提前将2GT带宽10mm同步带套在电机惰轮上，便于后续安装
 
 > 📷 *参考图片：*
-> ![RA轴电机与刹车模块安装](https://github.com/LeoJohn233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(15).PNG "RA轴电机与刹车模块安装")
-> ![RA轴电机与刹车模块安装](https://github.com/LeoJohn233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(16).PNG "RA轴电机与刹车模块安装")
-> ![DEC轴电机安装](https://github.com/LeoJohn233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(17).PNG "DEC轴电机安装")
+> ![RA轴电机与刹车模块安装](https://github.com/LeoJohn233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(15).png "RA轴电机与刹车模块安装")
+> ![RA轴电机与刹车模块安装](https://github.com/LeoJohn233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(16).png "RA轴电机与刹车模块安装")
+> ![DEC轴电机安装](https://github.com/LeoJohn233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(17).png "DEC轴电机安装")
 
 ### 3. RA轴纬度座法兰的组装
 1.  将RA轴法兰盘与连接轴A和连接轴B通过内六角螺丝连接
