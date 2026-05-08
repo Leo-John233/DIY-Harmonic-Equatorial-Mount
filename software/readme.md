@@ -1,20 +1,19 @@
-# OnStep 优化补丁 (For N.I.N.A. & APP)
+# OnStep 优化补丁日志 (For N.I.N.A. & APP)
 
 ## 📌 背景与痛点
 
-在使用 OnStep 驱动谐波赤道仪时，由于谐波减速器不具备物理离合、静摩擦力小且扭矩极大，如果在开机未回零（未建立绝对坐标）的情况下误触指令，或设备两端不平衡，极易导致设备撞台、甚至断电溜车砸毁设备。
-
-同时，在拦截这些危险指令时，如果处理不当，会引发 **LX200 通讯协议底层冲突**，导致以下严重问题：
+在使用 OnStep 驱动谐波赤道仪时，由于谐波减速器不具备物理离合、静摩擦力小且扭矩极大，如果在开机未回零（未建立绝对坐标）的情况下误触指令，或设备两端不平衡，极易导致设备撞台、甚至断电溜车砸毁设备,同时，在拦截这些危险指令时，如果处理不当，会引发 **LX200 通讯协议底层冲突**，导致以下严重问题：
 
 1. **N.I.N.A. 串口崩溃**：强行返回自定义中文字符串会导致 ASCOM 驱动解析失败 (`Parsing Error`)。
 2. **蓝牙极高延迟 (Log Flooding)**：使用 `return` 强行掐断通讯或频繁触发 `CE_PARKED` 错误，会导致底层日志系统疯狂刷屏，撑爆 ESP32 的蓝牙缓存，致使 APP 按键指令严重卡顿。
 3. **幽灵跟踪**：GOTO 被拦截后，天文软件的保护机制或预处理逻辑会强行唤醒恒星跟踪。
 
+
 ---
 
 ## 🎯 功能特性
 
-本补丁对 `Command.ino`、`OnStep.ino` 及相关初始化逻辑进行了深度优化，实现了完美的“开机防撞锁”、“防溜车机制”与“脱困逻辑”：
+本补丁对 `Command.ino`、`OnStep.ino`、`guide.io` 及相关初始化逻辑进行了深度优化，实现了完美的“开机防撞锁”、“防溜车机制”与“脱困逻辑”：
 
 * **开机防溜车抱闸**：通电瞬间自动使能电机并进入静止状态，利用电机的保持转矩（Holding Torque）充当电子抱闸，防止严重不平衡时的重力滑落。
 * **物理级一键回零**：复用 ST4 导星接口，外接实体按键长按 3 秒即可触发寻找零位（Find Home），并带有硬件级防抖与电机脉冲屏蔽锁。
@@ -224,7 +223,118 @@
             }
         }
 ```
+---
 
+## 📌 优化：谐波大角度寻零补偿与全自动对齐
+
+在完美解决了开机防溜车和防撞锁死之后，针对 DIY 谐波赤道仪的**物理零位标定**与**高减速比机械保护**，原生 OnStep 固件仍存在以下严重痛点：
+
+1. **原生补偿范围极度受限**：OnStep 原生的 `Home Offset` 采用“角秒”为单位，且底层宏定义（`HOME_OFFSET_RANGE_AXIS1`）将其死锁在几千角秒（通常不到 1°）以内,DIY 谐波赤道仪的光电传感器安装误差往往超过 1°，导致原生补偿直接失效报错
+2. **操作割裂且不连贯**：寻零完成（碰到传感器）后，赤道仪仅仅是停在触发点并重置内部坐标，必须依靠用户手动在星图软件中再次点击“GOTO 零位”才能回到绝对基准，极不优雅。
+3. **高减速比下的机械冲击**：谐波减速器（100:1）叠加同步带（1:4）产生极高的总减速比（400:1）,原生默认的 GOTO 加速度和限位急停距离过短，极易在起步和触发限位时对柔轮产生毁灭性的反冲剪切力
+
+---
+
+## 🎯 进阶功能特性
+
+本补丁对 `Constants.h`、`AxisTile.cpp`、`Home.ino` 及 `Config.h` 进行了修改，实现了：
+
+* **UI 直观解锁**：在网页端提供以“度 (Degrees)”为单位的无限位直观偏移量输入，自动存储至 EEPROM。
+* **寻零闭环全自动到位**：寻零结束瞬间完成坐标静默篡改，并**自动无缝唤醒 GOTO 引擎**，一步倒车/前进至绝对物理零位。
+
+---
+
+### 7. 分配寻零偏移量 EEPROM 存储地址 (修改 `Constants.h`)
+
+**定位**: 搜索 `// rotator base address` 所在区域。
+**修改逻辑**: 利用 `GSB` 尾部绝对安全的空闲内存块，为双轴偏移量分配浮点数（Float）存储地址，实现永久记忆。
+
+```cpp
+// offsets for the rotator
+#define EE_rotSpos                      0  // 4
+#define EE_rotBacklashPos               4  // 2
+#define EE_rotBacklash                  6  // 2
+
+// =========================================================
+// --- [核心修改] 新增：寻零偏移量 EEPROM 地址 ---
+// =========================================================
+// 利用 GSB 尾部的绝对安全空闲空间，避开所有系统内置参数
+#define EE_homeOffsetAxis1         GSB+182 // 占用 4 bytes (float)
+#define EE_homeOffsetAxis2         GSB+186 // 占用 4 bytes (float)
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Unique identifier for the current initialization format for NV, do not change
+#define NV_INIT_KEY 915307551
+```
+
+
+### 8. 解锁网页端 UI 直观输入 (修改 AxisTile.cpp)
+
+**定位**: 搜索 sendAxisParams(&a, 1);（针对 Axis 1）和 sendAxisParams(&a, 2);（针对 Axis 2）。
+**修改逻辑**: 绕过原生的角秒级偏移量输入框，增加基于“度”的新输入控件，并利用 F() 宏和 L_HOME_OFFSET 实现多语言适配及内存优化。
+```cpp
+sprintf_P(temp, html_configAxisMax, (int)a.max, 1, 0, 360, "&deg;,");
+            data.concat(temp);
+            www.sendContentAndClear(data);
+
+            // =========================================================
+            // --- [核心修改] 新增：轴 1 寻零偏移量输入框 (支持多语言翻译) ---
+            // =========================================================
+            data.concat(F("<br/><label>" L_HOME_OFFSET " (Deg):</label>&nbsp;<input type='number' name='ho1' step='0.01' style='width:5em;' placeholder='0.0'>"));
+            www.sendContentAndClear(data);
+            
+            sendAxisParams(&a, 1);
+
+            data.concat(F("<br /><button type='submit'>" L_UPLOAD "</button> "));
+```
+*(注：Axis 2 处执行完全相同的修改，仅将 name='ho1' 改为 name='ho2'。后端数据提取逻辑由 Command.ino 承接)*
+
+
+### 9. 重写底层寻零闭环与自动 GOTO 补偿 (修改 Home.ino)
+
+**定位**: 搜索 if (findHomeMode == FH_DONE && guideDirAxis1 == 0 && guideDirAxis2 == 0) 的寻零结束事件。
+**修改逻辑**: 拦截坐标初始化事件，挂起系统中断注入偏移量，并强制调用原生安全 goTo 接口完成闭环补偿。
+
+```cpp
+#else    
+      // at the home position
+      initStartPosition();
+
+      // =========================================================
+      // --- [核心修改] 寻零后执行坐标欺骗，并自动触发 GOTO 补偿 ---
+      // =========================================================
+      // 1. 读取网页下发的偏移量 (度)
+      float offsetDeg1 = nv.readFloat(EE_homeOffsetAxis1);
+      float offsetDeg2 = nv.readFloat(EE_homeOffsetAxis2);
+
+      // 2. 数据防呆清洗 (防止未初始化 EEPROM 读出乱码导致电机暴走)
+      if (isnan(offsetDeg1) || offsetDeg1 > 360.0 || offsetDeg1 < -360.0) offsetDeg1 = 0.0;
+      if (isnan(offsetDeg2) || offsetDeg2 > 360.0 || offsetDeg2 < -360.0) offsetDeg2 = 0.0;
+
+      // 3. 挂起中断，执行最高优先级的坐标系静默平移
+      cli();
+      long offsetSteps1 = (long)((double)offsetDeg1 * axis1Settings.stepsPerMeasure);
+      long offsetSteps2 = (long)((double)offsetDeg2 * axis2Settings.stepsPerMeasure);
+
+      posAxis1 -= offsetSteps1;
+      posAxis2 -= offsetSteps2;
+      targetAxis1.part.m -= offsetSteps1;
+      targetAxis2.part.m -= offsetSteps2;
+      sei();
+
+      // 4. 恢复安全保护机制
+      safetyLimitsOn = true;
+      atHome = true;
+
+      // 5. 核心魔法：如果存在偏差，立刻唤醒闭环 GOTO，平滑补偿至物理绝对零点！
+      if (offsetSteps1 != 0 || offsetSteps2 != 0) {
+          trackingState = TrackingNone; // 确保不进入恒星追踪逻辑
+          goTo(homePositionAxis1, homePositionAxis2, homePositionAxis1, homePositionAxis2, PierSideEast);
+      }
+      // =========================================================
+    #endif
+  }
+```
 ---
 
 ## 💡 总结与建议
