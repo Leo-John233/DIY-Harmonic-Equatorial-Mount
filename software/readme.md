@@ -268,7 +268,7 @@
 ```
 
 
-### 8. 解锁网页端 UI 直观输入 (修改 AxisTile.cpp)
+### 8. 网页端 UI 直观输入 (修改 AxisTile.cpp)
 
 **定位**: 搜索 sendAxisParams(&a, 1);（针对 Axis 1）和 sendAxisParams(&a, 2);（针对 Axis 2）。
 **修改逻辑**: 绕过原生的角秒级偏移量输入框，增加基于“度”的新输入控件，并利用 F() 宏和 L_HOME_OFFSET 实现多语言适配及内存优化。
