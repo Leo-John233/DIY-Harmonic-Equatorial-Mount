@@ -200,28 +200,108 @@
 **修改逻辑**: 移除易导致意外锁死的坐标推断逻辑，增加单次报错锁防刷屏。
 
 ```cpp
+#if LIMIT_SENSE != OFF
+    byte limit_reading = digitalRead(LimitPin);
+    unsigned long currentTime = millis(); 
+    
+    // 请确保这三个变量在外部定义为了全局变量，或者在这里加上 static 关键字
+    static unsigned long lastLimitTriggerTime = 0;
+    static int Axis1_LimitLock = 0;
+    static int Axis2_LimitLock = 0;
+
+    // [检测到限位触发]
+    if (limit_reading == LIMIT_SENSE_STATE) {
+      
+      delayMicroseconds(50); 
+      if (digitalRead(LimitPin) == LIMIT_SENSE_STATE) {
+        
+        lastLimitTriggerTime = currentTime;
+
         // =========================================================
-        // 恢复纯粹的撞击方向锁死逻辑
+        // 1. 【最高权限】回零模式保护拦截 (修复编译报错)
         // =========================================================
-        if (Axis1_LimitLock == 0 && currentMotionDir1 != 0) {
-            Axis1_LimitLock = currentMotionDir1;
-        }
-        if (Axis2_LimitLock == 0 && currentMotionDir2 != 0) {
-            Axis2_LimitLock = currentMotionDir2;
+        // 使用全局函数 isHoming()。如果在寻找原点时撞击物理限位，执行最高级别硬刹车！
+        if (isHoming()) {
+            generalError = ERR_LIMIT_SENSE;
+            stopSlewingAndTracking(SS_LIMIT_HARD); // 强行切断电机脉冲
+            return; // 立即退出。Home.ino 的 checkHome() 会自动侦测到脉冲被切断，并安全结束回零状态
         }
 
         // =========================================================
-        // 执行急停 (带有单次触发锁)
+        // 2. 统一方向定义
         // =========================================================
-        if (!isEscaping) {
-            // --- [核心修改] 加一把单次触发锁，防止刷屏撑爆蓝牙 ---
-            if (generalError != ERR_LIMIT_SENSE) {
-                generalError = ERR_LIMIT_SENSE;
-                stopGuideAxis1(); 
-                stopGuideAxis2();
-                stopSlewingAndTracking(SS_LIMIT_HARD);
+        int currentMotionDir1 = 0;
+        int currentMotionDir2 = 0;
+
+        // --- Axis 1 (RA) ---
+        if (guideDirAxis1 == 'e') currentMotionDir1 = 1;       
+        else if (guideDirAxis1 == 'w') currentMotionDir1 = -1; 
+        else if (trackingState == TrackingMoveTo) {            
+             if (targetAxis1.part.m < posAxis1) currentMotionDir1 = 1; 
+             else if (targetAxis1.part.m > posAxis1) currentMotionDir1 = -1; 
+        }
+
+        // --- Axis 2 (DEC) ---
+        if (guideDirAxis2 == 'n') currentMotionDir2 = 1;       
+        else if (guideDirAxis2 == 's') currentMotionDir2 = -1; 
+        else if (trackingState == TrackingMoveTo) {            
+             if (targetAxis2.part.m > posAxis2) currentMotionDir2 = 1; 
+             else if (targetAxis2.part.m < posAxis2) currentMotionDir2 = -1; 
+        }
+
+        // =========================================================
+        // 3. 智能记录锁死方向 
+        // =========================================================
+        // --- Axis 1 智能判断 ---
+        if (Axis1_LimitLock == 0) {
+            if (currentMotionDir1 != 0 && trackingState == TrackingMoveTo) {
+                Axis1_LimitLock = currentMotionDir1;
+            } else {
+                long threshold = 500L; 
+                if (posAxis1 > threshold) Axis1_LimitLock = -1;       
+                else if (posAxis1 < -threshold) Axis1_LimitLock = 1;  
+                else if (currentMotionDir1 != 0) Axis1_LimitLock = currentMotionDir1; 
             }
         }
+
+        // --- Axis 2 智能判断 ---
+        if (Axis2_LimitLock == 0) {
+            if (currentMotionDir2 != 0 && trackingState == TrackingMoveTo) {
+                Axis2_LimitLock = currentMotionDir2;
+            } else {
+                long threshold = 500L;
+                if (posAxis2 > threshold) Axis2_LimitLock = 1;        
+                else if (posAxis2 < -threshold) Axis2_LimitLock = -1; 
+                else if (currentMotionDir2 != 0) Axis2_LimitLock = currentMotionDir2;
+            }
+        }
+
+        // =========================================================
+        // 4. 逃离判断 (Escape Logic)
+        // =========================================================
+        bool isEscaping = false;
+        
+        if (Axis1_LimitLock != 0 && currentMotionDir1 != 0 && currentMotionDir1 != Axis1_LimitLock) isEscaping = true;
+        if (Axis2_LimitLock != 0 && currentMotionDir2 != 0 && currentMotionDir2 != Axis2_LimitLock) isEscaping = true;
+
+        // =========================================================
+        // 5. 执行急停
+        // =========================================================
+        if (!isEscaping) {
+            generalError = ERR_LIMIT_SENSE;
+            stopGuideAxis1(); 
+            stopGuideAxis2();
+            stopSlewingAndTracking(SS_LIMIT_HARD);
+        }
+      } 
+    } else {
+       // [限位松开]
+       if (currentTime - lastLimitTriggerTime > 500) {
+           if (guideDirAxis1 == 0 && trackingState != TrackingMoveTo) Axis1_LimitLock = 0;
+           if (guideDirAxis2 == 0 && trackingState != TrackingMoveTo) Axis2_LimitLock = 0;
+       }
+    }
+#endif
 ```
 ---
 
