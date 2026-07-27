@@ -47,11 +47,11 @@ The project has completed power-on, basic GoTo, guiding, and real-world imaging 
 ## Final Results
 
 The core components of this DIY harmonic equatorial mount are used industrial Leaderdrive harmonic reducers. The design is also compatible with equivalent 25-100 harmonic reducers.
-![image.png](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/3D-Views/1.png)
-![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/3D-Views/3.jpg)
-![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/3D-Views/5.JPG)
-![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/3D-Views/4.jpg)
-![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/3D-Views/2.jpg)
+![image.png](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/3D-Views/1.png)
+![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/3D-Views/3.jpg)
+![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/3D-Views/5.JPG)
+![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/3D-Views/4.jpg)
+![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/3D-Views/2.jpg)
 
 ---
 
@@ -59,7 +59,7 @@ The core components of this DIY harmonic equatorial mount are used industrial Le
 
 The imaging target was **Herschel 36**
 
-![Herschel 36](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/Test/Herschel-36.jpg)
+![Herschel 36](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/Test/Herschel-36.jpg)
 
 | **Imaging Item** | **Configuration** |
 | :----- | :----- |
@@ -120,13 +120,13 @@ During normal use, the total RMS during stable guiding was typically around 0.4â
 <details>
 <summary>View the PHD2 screenshots and frequency-domain analysis</summary>
 
-![PHD2 stable guiding](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/Test/2026-07-03%20002555.png)
+![PHD2 stable guiding](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/Test/2026-07-03%20002555.png)
 
-![PHD2 complete log](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/Test/2026-07-03%20133401.png)
+![PHD2 complete log](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/Test/2026-07-03%20133401.png)
 
-![PHD2 drift-corrected analysis](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/Test/2026-07-03%20153632.png)
+![PHD2 drift-corrected analysis](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/Test/2026-07-03%20153632.png)
 
-![PHD2 frequency analysis](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/Test/2026-07-03%20153353.png)
+![PHD2 frequency analysis](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/Test/2026-07-03%20153353.png)
 
 The curve with RA guide corrections removed still contains low-frequency drift, dither, and settling effects. Its full peak-to-peak range must not be treated as the intrinsic periodic error of the harmonic reducer
 
@@ -174,11 +174,11 @@ All circuit schematics and PCB layoutsâ€”which feature strictly controlled safet
 
 ### PCB Manufacturing and Assembly
 
-![PCB front](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/pcb/PCB-1.jpg)
+![PCB front](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/PCB/PCB-1.jpg)
 
-![PCB reverse-side driver installation](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/pcb/PCB-2.jpg)
+![PCB reverse-side driver installation](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/PCB/PCB-2.jpg)
 
-![PCB reverse-side TMC2209 installation](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/pcb/PCB-3.jpg)
+![PCB reverse-side TMC2209 installation](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/PCB/PCB-3.jpg)
 
 The following sequence is recommended for PCB manufacturing and assembly:
 

@@ -5,7 +5,7 @@
 
 # 双25-100谐波赤道仪组装说明书
 
-结合 `pictures/Assembly process` 目录下的实拍记录，分步讲解从机械结构到电控系统的完整拼装过程
+结合 `images/Assembly process` 目录下的实拍记录，分步讲解从机械结构到电控系统的完整拼装过程
 
 ## 🛠️ 准备工作与物料清单 (BOM)
 
@@ -36,17 +36,17 @@
     | 6 | 光电传感器固定座 | `光电传感器固定座A.SLDPRT`，`光电传感器固定座B.SLDPRT`，`光电传感器固定座B - 增高.SLDPRT` |
 
 > 📷 *参考图片：*
-> ![3D打印件](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(20).jpg "3D打印件")
-> ![3D打印件](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(21).jpg "3D打印件")
-> ![3D打印件](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(22).jpg "3D打印件")
+> ![3D打印件](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(20).jpg "3D打印件")
+> ![3D打印件](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(21).jpg "3D打印件")
+> ![3D打印件](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(22).jpg "3D打印件")
 
 2. **给打印件熔入热熔螺母**：在组装前，先将准备好的热熔螺母熔入所有需要安装螺丝的3D打印件中，需要安装螺母的部位请参考下图中的标注，确保每个螺母都能牢固地固定在打印件中，并且位置准确，以便后续组装时能够顺利安装螺丝。
 
 > 📷 *参考图片：*
-> ![安装热熔螺母](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(23).jpg "安装热熔螺母")
-> ![安装热熔螺母](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(24).jpg "安装热熔螺母")
-> ![安装热熔螺母](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(25).jpg "安装热熔螺母")
-> ![安装热熔螺母](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(26).jpg "安装热熔螺母")
+> ![安装热熔螺母](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(23).jpg "安装热熔螺母")
+> ![安装热熔螺母](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(24).jpg "安装热熔螺母")
+> ![安装热熔螺母](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(25).jpg "安装热熔螺母")
+> ![安装热熔螺母](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(26).jpg "安装热熔螺母")
 
 3. **机加工**：对惰轮进行必要的改造，确保其尺寸和安装孔位符合设计要求，同时对铝板进行钻孔和攻丝，准备好安装所需的螺丝和铜柱。
 
@@ -63,9 +63,9 @@
 4.  将除去步骤2中的剩余的核心螺丝组件多余的部分拧入防松螺母，确保减速器与铝板之间的连接牢固且不会因振动而松动
 
 > 📷 *参考图片：*
-> ![安装谐波减速器](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(1).JPG "安装谐波减速器")
-> ![安装谐波减速器](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(2).JPG "安装谐波减速器")
-> ![安装谐波减速器](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(3).JPG "安装谐波减速器")
+> ![安装谐波减速器](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(1).JPG "安装谐波减速器")
+> ![安装谐波减速器](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(2).JPG "安装谐波减速器")
+> ![安装谐波减速器](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(3).JPG "安装谐波减速器")
 
 ### 2. 传动部分的组合
 1.  将加工过的80齿轮2GT惰轮安装在减速器的输入轴上，确保惰轮与输入轴同轴心，使用内六角螺丝并按对角线顺序均匀拧紧，确保连接牢固且不会因振动而松动
@@ -75,9 +75,9 @@
 5.  提前将2GT带宽10mm同步带套在电机惰轮上，便于后续安装
 
 > 📷 *参考图片：*
-> ![RA轴电机与刹车模块安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(15).jpg "RA轴电机与刹车模块安装")
-> ![RA轴电机与刹车模块安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(16).jpg "RA轴电机与刹车模块安装")
-> ![DEC轴电机安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(17).jpg "DEC轴电机安装")
+> ![RA轴电机与刹车模块安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(15).jpg "RA轴电机与刹车模块安装")
+> ![RA轴电机与刹车模块安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(16).jpg "RA轴电机与刹车模块安装")
+> ![DEC轴电机安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(17).jpg "DEC轴电机安装")
 
 ### 3. RA轴纬度座法兰的组装
 1.  将RA轴法兰盘与连接轴A和连接轴B通过内六角螺丝连接
@@ -85,9 +85,9 @@
 3.  将步骤1和2中组装好的整体结构通过内六角螺丝安装到谐波减速器的法兰盘上，在安装过程同时安装3d打印好减速器保护罩
 
 > 📷 *参考图片：*
-> ![纬度座的组装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(7).JPG "纬度座的组装")
-> ![纬度座的组装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(8).JPG "纬度座的组装")
-> ![纬度座的组装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(10).JPG "纬度座的组装")
+> ![纬度座的组装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(7).JPG "纬度座的组装")
+> ![纬度座的组装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(8).JPG "纬度座的组装")
+> ![纬度座的组装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(10).JPG "纬度座的组装")
 
 ### 4. 电机，同步带与减速器的连接以及传感器，法兰盘的安装
 1.  通过电机座上预留的孔位安装至步骤1中铝板上预留的更长螺丝上，绷紧同步带，并在螺丝上拧上防松螺母，确保同步带在传动过程中不会发生打滑或过度松弛
@@ -99,19 +99,19 @@
 7.  安装RA/DEC轴的法兰盘，确保其与轴同轴心，并使用内六角螺丝均匀拧紧，确保法兰盘在运行过程中不会发生偏移或松动
 
 > 📷 *参考图片：*
-> ![RA轴电机与刹车模块，传感器，法兰盘的安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(5).JPG "RA轴电机与刹车模块，传感器，法兰盘的安装")
-> ![DEC轴电机，同步带](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(9).JPG "DEC轴电机，同步带")
-> ![DEC轴法兰盘的安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(6).JPG "DEC轴法兰盘的安装")
-> ![传感器的安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(27).jpg "传感器的安装")
-> ![传感器的安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(28).jpg "传感器的安装")
-> ![传感器的安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(29).jpg "传感器的安装")
+> ![RA轴电机与刹车模块，传感器，法兰盘的安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(5).JPG "RA轴电机与刹车模块，传感器，法兰盘的安装")
+> ![DEC轴电机，同步带](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(9).JPG "DEC轴电机，同步带")
+> ![DEC轴法兰盘的安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(6).JPG "DEC轴法兰盘的安装")
+> ![传感器的安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(27).jpg "传感器的安装")
+> ![传感器的安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(28).jpg "传感器的安装")
+> ![传感器的安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(29).jpg "传感器的安装")
 
 ### 5. 外壳的组装
 1.  将组装好RA轴和DEC轴的机械结构通过铝块连接，利用大理石水平面确保所有铝板都能够垂直正交安装并且不会发生干涉
 2.  并在螺丝连接处涂抹适量的螺丝胶，确保在设备运行过程中机械连接的稳定性和可靠性
 
 > 📷 *参考图片：*
-> ![外壳的组装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(11).JPG "外壳的组装")
+> ![外壳的组装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(11).JPG "外壳的组装")
 
 ---
 
@@ -122,8 +122,8 @@
 2.  依次将 TMC5160 驱动模块和 ESP32 主控板插接至对应排母，注意核对引脚方向，切勿插反。
 
 > 📷 *参考图片：*
-> ![PCB及驱动安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(18).jpg "PCB及驱动安装")
-> ![PCB及驱动安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(19).jpg "PCB及驱动安装")
+> ![PCB及驱动安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(18).jpg "PCB及驱动安装")
+> ![PCB及驱动安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(19).jpg "PCB及驱动安装")
 
 ### 2. 规范接线与理线
 为保证设备在野外环境与大电流驱动下的绝对稳定，本项目的接线有着严格的要求：
@@ -132,7 +132,7 @@
 3.  连接掉电保护系统的控制线，并整理所有线束，确保赤道仪在全方位极限旋转时线缆不会发生缠绕或过度拉扯。
 
 > 📷 *参考图片：*
-> ![规范的电源引线与内部走线](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(12).JPG "规范的电源引线与内部走线")
+> ![规范的电源引线与内部走线](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(12).JPG "规范的电源引线与内部走线")
 
 ---
 
@@ -145,8 +145,8 @@
 3.  **上电自检**：接入电源，测试电磁抱闸是否能正常吸合/释放，并通过上位机监测 TMC5160 的运行状态及细分设置。
 
 > 📷 *参考图片：*
-> ![电控系统点亮与联机测试](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(13).JPG "电控系统点亮与联机测试")
-> ![电控系统点亮与联机测试](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(14).JPG "电控系统点亮与联机测试")
+> ![电控系统点亮与联机测试](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(13).JPG "电控系统点亮与联机测试")
+> ![电控系统点亮与联机测试](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(14).JPG "电控系统点亮与联机测试")
 
 ---
 

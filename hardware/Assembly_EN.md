@@ -5,7 +5,7 @@
 
 # Dual 25-100 Harmonic Equatorial Mount Assembly Instructions
 
-Combining real-life footage from the `pictures/Assembly process` directory, this guide explains the complete assembly process, from the mechanical structure to the electrical control system, step-by-step.
+Combining real-life footage from the `images/Assembly process` directory, this guide explains the complete assembly process, from the mechanical structure to the electrical control system, step-by-step.
 
 ## 🛠️ Preparation and Materials List (BOM)
 
@@ -40,16 +40,16 @@ Before formal assembly, it is recommended to complete the following preparations
     | 6 | Photoelectric Sensor Mount | `Photoelectric Sensor Mount A.SLDPRT`, `Photoelectric Sensor Mount B.SLDPRT`, `Photoelectric Sensor Mount B - Heightening.SLDPRT` |
 
 > 📷 *Reference Image:*
-> ![3D Printed Parts](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(20).jpg "3D Printed Parts")
-> ![3D Printed Parts](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(21).jpg "3D Printed Parts")
-> ![3D Printed Parts](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(22).jpg "3D Printed Parts")
+> ![3D Printed Parts](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(20).jpg "3D Printed Parts")
+> ![3D Printed Parts](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(21).jpg "3D Printed Parts")
+> ![3D Printed Parts](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(22).jpg "3D Printed Parts")
 
 2. **Fuse Hot-Melt Nuts into Printed Parts:** Before assembly, fuse the prepared hot-melt nuts into all 3D printed parts that require screws. Refer to the markings in the image below for the locations where nuts will be installed. Ensure each nut is securely fixed in the printed part and accurately positioned for easy screw installation during subsequent assembly.
 
 > 📷 *Reference Images:*
-> ![Installing the Hot Melt Nut](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(23).jpg "Installing the Hot Melt Nut")
-> ![Installing the Hot Melt Nut](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(24).jpg "Installing the Hot Melt Nut")
-> ![Installing the Hot Melt Nut](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(25).jpg "Installing the Hot Melt Nut") ![Installing the thermoplastic nut](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(26).jpg "Installing the thermoplastic nut")
+> ![Installing the Hot Melt Nut](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(23).jpg "Installing the Hot Melt Nut")
+> ![Installing the Hot Melt Nut](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(24).jpg "Installing the Hot Melt Nut")
+> ![Installing the Hot Melt Nut](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(25).jpg "Installing the Hot Melt Nut") ![Installing the thermoplastic nut](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(26).jpg "Installing the thermoplastic nut")
 
 3. **Machining**: Modify the idler wheel as necessary to ensure its dimensions and mounting hole positions meet design requirements. Simultaneously, drill and tap holes in the aluminum plate, preparing the necessary screws and copper posts for installation.
 
@@ -66,9 +66,9 @@ In this step, we will install the core components of the equatorial mount. Consi
 4. Tighten the excess parts of the remaining core screw components (excluding those from step 2) into lock nuts to ensure a secure connection between the reducer and the aluminum plate that will not loosen due to vibration.
 
 > 📷 *Reference Images:*
-> ![Installing Harmonic Reducer](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(1).JPG "Installing Harmonic Reducer")
-> ![Installing Harmonic Reducer](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(2).JPG "Installing Harmonic Reducer")
-> ![Installing Harmonic Reducer](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(3).JPG "Installing Harmonic Reducer")
+> ![Installing Harmonic Reducer](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(1).JPG "Installing Harmonic Reducer")
+> ![Installing Harmonic Reducer](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(2).JPG "Installing Harmonic Reducer")
+> ![Installing Harmonic Reducer](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(3).JPG "Installing Harmonic Reducer")
 
 ### 2. Transmission Assembly
 
@@ -79,9 +79,9 @@ In this step, we will install the core components of the equatorial mount. Consi
 5. Place a 2GT 10mm wide synchronous belt onto the motor idler wheel beforehand for easier subsequent installation.
 
 > 📷 *Reference Image:*
-> ![RA Axis Motor and Brake Module Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(15).jpg "RA Axis Motor and Brake Module Installation")
-> ![RA Axis Motor and Brake Module Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(16).jpg "RA Axis Motor and Brake Module Installation")
-> ![DEC Axis Motor Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(17).jpg "DEC Axis Motor Installation")
+> ![RA Axis Motor and Brake Module Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(15).jpg "RA Axis Motor and Brake Module Installation")
+> ![RA Axis Motor and Brake Module Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(16).jpg "RA Axis Motor and Brake Module Installation")
+> ![DEC Axis Motor Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(17).jpg "DEC Axis Motor Installation")
 
 ### 3. Assembly of RA Axis Latitude Seat Flange
 1. 1. Connect the RA shaft flange to connecting shafts A and B using hex socket screws.
@@ -89,9 +89,9 @@ In this step, we will install the core components of the equatorial mount. Consi
 3. Install the assembled structure from steps 1 and 2 onto the flange of the harmonic reducer using hex socket screws. Simultaneously install the 3D-printed reducer protective cover during the installation process.
 
 > 📷 *Reference Image:*
-> ![Assembly of Latitude Mount](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(7).JPG "Assembly of Latitude Mount")
-> ![Assembly of Latitude Mount](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(8).JPG "Assembly of Latitude Mount")
-> ![Assembly of Latitude Mount](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(10).JPG "Assembly of Latitude Mount")
+> ![Assembly of Latitude Mount](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(7).JPG "Assembly of Latitude Mount")
+> ![Assembly of Latitude Mount](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(8).JPG "Assembly of Latitude Mount")
+> ![Assembly of Latitude Mount](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(10).JPG "Assembly of Latitude Mount")
 
 ### 4. Connection of Motor, Synchronous Belt and Reducer, and Installation of Sensor and Flange
 
@@ -104,19 +104,19 @@ In this step, we will install the core components of the equatorial mount. Consi
 7. Install the flange of the RA/DEC shaft, ensuring it is coaxial with the shaft, and tighten it evenly with Allen screws to ensure the flange does not shift or loosen during operation.
 
 > 📷 *Reference Image:*
-> ![RA shaft motor and brake module, sensor, flange installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(5).JPG "Installation of RA axis motor, brake module, sensor, and flange")
-> ![DEC axis motor, timing belt](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(9).JPG "DEC axis motor, timing belt")
-> ![DEC axis flange installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(6).JPG "DEC axis flange installation")
-> ![Sensor Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(27).jpg "Sensor Installation")
-> ![Sensor Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(28).jpg "Sensor Installation")
-> ![Sensor Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(29).jpg "Sensor Installation")
+> ![RA shaft motor and brake module, sensor, flange installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(5).JPG "Installation of RA axis motor, brake module, sensor, and flange")
+> ![DEC axis motor, timing belt](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(9).JPG "DEC axis motor, timing belt")
+> ![DEC axis flange installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(6).JPG "DEC axis flange installation")
+> ![Sensor Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(27).jpg "Sensor Installation")
+> ![Sensor Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(28).jpg "Sensor Installation")
+> ![Sensor Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(29).jpg "Sensor Installation")
 
 ### 5. Housing Assembly
 1. Connect the assembled RA and DEC axes mechanical structures using aluminum blocks. Utilize a marble-like horizontal surface to ensure all aluminum plates are installed perpendicularly and orthogonally without interference.
 2. Apply an appropriate amount of screw glue to the screw connections to ensure the stability and reliability of the mechanical connections during equipment operation.
 
 > 📷 *Reference Image:*
-> ![Shell Assembly](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(11).JPG "Shell Assembly")
+> ![Shell Assembly](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(11).JPG "Shell Assembly")
 
 ---
 
@@ -127,8 +127,8 @@ In this step, we will install the core components of the equatorial mount. Consi
 1. Fix the assembled PCB board inside the electrical control compartment using copper pillars. During installation, carefully check the 12V/24V high-current power supply plane on the back to ensure sufficient insulation distance between it and the metal casing. 2. Connect the TMC5160 driver module and the ESP32 main control board to the corresponding female connectors in sequence, carefully checking the pin orientation to ensure they are correctly connected.
 
 > 📷 *Reference Images:*
-> ![PCB and Driver Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(18).jpg "PCB and Driver Installation")
-> ![PCB and Driver Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC(19).jpg "PCB and Driver Installation")
+> ![PCB and Driver Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(18).jpg "PCB and Driver Installation")
+> ![PCB and Driver Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(19).jpg "PCB and Driver Installation")
 
 ### 2. Standard Wiring and Cable Management To ensure the absolute stability of the equipment in outdoor environments and under high current driving conditions, the wiring in this project has strict requirements:
 
@@ -137,7 +137,7 @@ In this step, we will install the core components of the equatorial mount. Consi
 3. Connect the control cables for the power-off protection system and tidy up all wiring harnesses to ensure that the cables do not become tangled or excessively stretched during the equatorial mount's extreme rotation.
 
 > 📷 *Reference Image:*
-> ![Standard Power Leads and Internal Routing](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(12).JPG "Standard Power Leads and Internal Routing")
+> ![Standard Power Leads and Internal Routing](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(12).JPG "Standard Power Leads and Internal Routing")
 
 ---
 
@@ -149,8 +149,8 @@ The equatorial mount's hardware logic is designed specifically for the standard 
 2. **Communication Confirmation**: Ensure the ESP32 pin mapping matches your modified OnStep firmware, and confirm the ESP07S's network communication connection is normal. 3. **Power-on Self-Test:** Connect to power and test whether the electromagnetic brake can engage/release normally. Monitor the operating status and microstepping settings of the TMC5160 via the host computer.
 
 > 📷 *Reference Images:*
-> ![Electronic Control System Lighting and Online Testing](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(13).JPG "Electronic Control System Lighting and Online Testing")
-> ![Electronic Control System Lighting and Online Testing](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Assembly%20process/DSC%20(14).JPG "Electronic Control System Lighting and Online Testing")
+> ![Electronic Control System Lighting and Online Testing](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(13).JPG "Electronic Control System Lighting and Online Testing")
+> ![Electronic Control System Lighting and Online Testing](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(14).JPG "Electronic Control System Lighting and Online Testing")
 
 ---
 
