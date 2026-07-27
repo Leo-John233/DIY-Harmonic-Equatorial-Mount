@@ -29,7 +29,7 @@
 
 大家都很忙，祝您的“平价赤道仪”大卖，Peace & Love
 
-👉 **[奇文共赏：点击此处阅读“白嫖式创业奇才”的逆天聊天实录](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/Chat%20history/readme.md)**
+👉 **[奇文共赏：点击此处阅读“白嫖式创业奇才”的逆天聊天实录](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Chat%20history/readme.md)**
 
 ---
 ## DIY谐波赤道仪（已完成实拍与导星测试）
@@ -68,11 +68,11 @@
 ## 最终成效
 
 自制谐波赤道仪的核心部件为 Leaderdrive 拆机二手工业谐波减速器，也适用于同规格的 25-100 谐波减速器
-![image.png](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/3D-Views/1.png)
-![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/3D-Views/3.jpg)
-![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/3D-Views/5.JPG)
-![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/3D-Views/4.jpg)
-![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/pictures/3D-Views/2.jpg)
+![image.png](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/3D-Views/1.png)
+![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/3D-Views/3.jpg)
+![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/3D-Views/5.JPG)
+![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/3D-Views/4.jpg)
+![image.jpg](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/3D-Views/2.jpg)
 
 ---
 
@@ -80,7 +80,7 @@
 
 本次拍摄目标为 **Herschel 36**
 
-![Herschel 36](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/Test/Herschel-36.jpg)
+![Herschel 36](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/Test/Herschel-36.jpg)
 
 | **实拍项目** | **配置** |
 | :----- | :----- |
@@ -141,13 +141,13 @@
 <details>
 <summary>展开查看 PHD2 测试截图与频域分析</summary>
 
-![PHD2 stable guiding](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/Test/2026-07-03%20002555.png)
+![PHD2 stable guiding](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/Test/2026-07-03%20002555.png)
 
-![PHD2 complete log](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/Test/2026-07-03%20133401.png)
+![PHD2 complete log](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/Test/2026-07-03%20133401.png)
 
-![PHD2 drift-corrected analysis](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/Test/2026-07-03%20153632.png)
+![PHD2 drift-corrected analysis](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/Test/2026-07-03%20153632.png)
 
-![PHD2 frequency analysis](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/Test/2026-07-03%20153353.png)
+![PHD2 frequency analysis](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/Test/2026-07-03%20153353.png)
 
 移除 RA 导星修正后的曲线仍包含低频漂移、Dither 和 Settling 的影响，不能直接将整段曲线的峰峰值视为谐波减速器的本征周期误差
 
@@ -195,11 +195,11 @@
 
 ### PCB 制作与装配说明
 
-![PCB front](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/pcb/PCB-1.jpg)
+![PCB front](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/pcb/PCB-1.jpg)
 
-![PCB reverse-side TMC5160 installation](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/pcb/PCB-2.jpg)
+![PCB reverse-side TMC5160 installation](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/pcb/PCB-2.jpg)
 
-![PCB reverse-side TMC2209 installation](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/pictures/pcb/PCB-3.jpg)
+![PCB reverse-side TMC2209 installation](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/pcb/PCB-3.jpg)
 
 PCB 制作和装配建议按以下顺序进行：
 
