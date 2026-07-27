@@ -195,11 +195,11 @@
 
 ### PCB 制作与装配说明
 
-![PCB front](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/pcb/PCB-1.jpg)
+![PCB front](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/PCB/PCB-1.jpg)
 
-![PCB reverse-side TMC5160 installation](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/pcb/PCB-2.jpg)
+![PCB reverse-side TMC5160 installation](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/PCB/PCB-2.jpg)
 
-![PCB reverse-side TMC2209 installation](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/pcb/PCB-3.jpg)
+![PCB reverse-side TMC2209 installation](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/images/PCB/PCB-3.jpg)
 
 PCB 制作和装配建议按以下顺序进行：
 
