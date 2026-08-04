@@ -89,7 +89,14 @@
 > ![纬度座的组装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(8).JPG "纬度座的组装")
 > ![纬度座的组装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(10).JPG "纬度座的组装")
 
-### 4. 电机，同步带与减速器的连接以及传感器，法兰盘的安装
+### 4. 光电传感器和电机的接线顺序
+1.  确定购买的光电传感器的型号是槽型形光电开关四线制NPN型，确保其输出信号能够与 ESP32 主控板的输入引脚兼容
+2.  将零位传感器(HOME传感器)的接线配置为：棕色线接+5V电源，蓝色线接GND，黑色线(即NPN NO)
+3.  将限位传感器(LIMIT传感器)的接线配置为：棕色线接+5V电源，蓝色线接GND，白色线(即NPN NC)
+4.  将DEC和RA轴对应电机的接线顺序为：A-，A+，B+，B-，确保电机的相序正确
+
+
+### 5. 电机，同步带与减速器的连接以及传感器，法兰盘的安装
 1.  通过电机座上预留的孔位安装至步骤1中铝板上预留的更长螺丝上，绷紧同步带，并在螺丝上拧上防松螺母，确保同步带在传动过程中不会发生打滑或过度松弛
 2.  并适当调整电机输出轴上的惰轮高度，使其与减速器输入轴上的惰轮处于同一水平面，确保同步带的张力均匀分布，避免因不平行导致的过度磨损或传动效率降低
 3.  在完成上述步骤后，手动旋转大惰轮，检查同步带的运行是否平稳，确保没有异常的摩擦声或振动，这将有助于确认传动系统的正确安装和调整
@@ -106,7 +113,7 @@
 > ![传感器的安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(28).jpg "传感器的安装")
 > ![传感器的安装](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(29).jpg "传感器的安装")
 
-### 5. 外壳的组装
+### 6. 外壳的组装
 1.  将组装好RA轴和DEC轴的机械结构通过铝块连接，利用大理石水平面确保所有铝板都能够垂直正交安装并且不会发生干涉
 2.  并在螺丝连接处涂抹适量的螺丝胶，确保在设备运行过程中机械连接的稳定性和可靠性
 

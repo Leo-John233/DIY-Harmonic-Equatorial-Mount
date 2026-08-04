@@ -93,7 +93,14 @@ In this step, we will install the core components of the equatorial mount. Consi
 > ![Assembly of Latitude Mount](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(8).JPG "Assembly of Latitude Mount")
 > ![Assembly of Latitude Mount](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC%20(10).JPG "Assembly of Latitude Mount")
 
-### 4. Connection of Motor, Synchronous Belt and Reducer, and Installation of Sensor and Flange
+### 4. Wiring Sequence of Photoelectric Sensor and Motor
+
+1. Confirm that the purchased photoelectric sensor is a slot-type photoelectric switch, four-wire NPN type, and ensure that its output signal is compatible with the input pins of the ESP32 main control board.
+2. Configure the wiring of the zero-position sensor (HOME sensor) as follows: brown wire to +5V power supply, blue wire to GND, black wire (i.e., NPN NO).
+3. Configure the wiring of the limit sensor (LIMIT sensor) as follows: brown wire to +5V power supply, blue wire to GND, white wire (i.e., NPN NC).
+4. Configure the wiring sequence of the motors corresponding to the DEC and RA axes as follows: A-, A+, B+, B-, ensuring the correct phase sequence of the motors.
+
+### 5. Connection of Motor, Synchronous Belt and Reducer, and Installation of Sensor and Flange
 
 1. Install the motor onto the longer screws pre-drilled on the aluminum plate in step 1 through the pre-drilled holes on the motor mount. Tighten the synchronous belt and tighten the anti-loosening nuts on the screws to ensure that the synchronous belt does not slip or become excessively loose during transmission.
 2. Adjust the height of the idler pulley on the motor output shaft appropriately so that it is on the same horizontal plane as the idler pulley on the reducer input shaft. This ensures even tension distribution of the synchronous belt and avoids excessive wear or reduced transmission efficiency due to non-parallelism.
@@ -111,7 +118,7 @@ In this step, we will install the core components of the equatorial mount. Consi
 > ![Sensor Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(28).jpg "Sensor Installation")
 > ![Sensor Installation](https://github.com/Leo-John233/DIY-Harmonic-Equatorial-Mount/blob/main/images/Assembly%20process/DSC(29).jpg "Sensor Installation")
 
-### 5. Housing Assembly
+### 6. Housing Assembly
 1. Connect the assembled RA and DEC axes mechanical structures using aluminum blocks. Utilize a marble-like horizontal surface to ensure all aluminum plates are installed perpendicularly and orthogonally without interference.
 2. Apply an appropriate amount of screw glue to the screw connections to ensure the stability and reliability of the mechanical connections during equipment operation.
 
