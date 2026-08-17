@@ -1,156 +1,262 @@
-# OnStep 谐波赤道仪安全回零与限位脱困补丁 (For N.I.N.A. / ASCOM / APP)
+# OnStep 谐波赤道仪安全回零与限位脱困增强版
 
 ---
 
 ## 📝 摘要 (Summary)
 
-本次提交对 OnStep 4.24 的底层控制、回零状态机、LX200 指令处理和限位保护逻辑进行了安全增强。修改目标是让 DIY 谐波赤道仪在开机、未回零、GOTO、Tracking、物理限位触发以及回零偏置过程中都保持可控状态。
+本项目以 [原始 OnStep 4.24](https://github.com/hjd1964/OnStep/tree/release-4.24) 为对照基准，说明本地固件针对 MaxESP3 谐波赤道仪做出的实际修改
 
-当前代码实现的核心策略是：**自动动作严格、手动动作保留、限位后可脱困、回零成功才解锁**。
+修改围绕三条主线展开，开机后先建立保持力矩并确认位置，运动中保留安全中断与反向脱困能力，驱动细分切换时保持双轴同步
 
-也就是说，开机后系统会自动使能电机形成电子保持力矩；在真实回零完成前，N.I.N.A. / ASCOM / APP 发出的 GOTO 与 Tracking 会被拦截；但手动方向键不会因为“未回零”而被完全禁止，用户仍可手动调整姿态或进行脱困。若触发物理限位，代码会记录危险方向，只禁止继续撞限位的一侧，同时允许反方向安全离开。Home 成功、Set Home 或无传感器模式下的原生 Home 完成后，系统才重新允许 GOTO 与 Tracking。
+具体改进包括开机电机保持、位置可信状态、GOTO 与 Tracking 安全锁、物理限位反向脱困、三阶段自动回零、GOTO 中断分类、客户端状态修复以及 MaxESP3 TMC2209 共享细分切换
+
+本文只展示本地代码相对原始 OnStep 4.24 新增或改进的实现，不重复粘贴未修改的上游代码
 
 ---
 
 ## 📌 背景与痛点 (Pain Points)
 
-在将原生 OnStep 用于 DIY 谐波赤道仪时，会遇到以下软硬件协同风险：
+原始 OnStep 4.24 是面向多种赤道仪和经纬仪的通用固件。将它用于当前 MaxESP3 谐波赤道仪时，还需要处理下面这些实际问题
 
-1. **开机/待机溜车风险**：谐波减速器没有传统离合结构，若镜筒不平衡，开机初期电机未保持时容易发生重力滑落。
+1. **开机可能溜车**
 
-2. **未回零前坐标不可信**：Home 传感器启用时，开机后的机械绝对位置尚未确认，此时若允许 N.I.N.A. 或 APP 直接 GOTO，可能造成错误指向、撞机或绕线。
+   谐波赤道仪通常没有传统离合结构。镜筒失衡时，如果驱动器在上电初期没有保持力矩，机械结构可能在重力作用下滑落
 
-3. **GOTO 失败后幽灵 Tracking**：部分上位机在 GOTO 前后会尝试开启 Tracking。若未完成 Home 或安全中断后仍允许 Tracking，可能导致赤道仪在错误坐标基准下继续运动。
+2. **上电位置不能直接信任**
 
-4. **物理限位后不能完全锁死**：触发限位后，如果所有方向键都被禁止，赤道仪无法反向脱困；如果完全不锁，又可能继续朝危险方向撞击。
+   开环步进系统断电后无法证明机械位置没有变化。Home 传感器启用时，开机后的坐标只能在真实回零完成后重新建立
 
-5. **回零失败不能伪装成成功**：如果只根据“回零状态结束”来标记已回零，回零超时、启动失败或安全中断都可能被误判为成功，后续 GOTO 风险极高。
+3. **未回零时自动动作风险较高**
 
-6. **DIY 传感器安装误差需要大角度补偿**：实际 Home 传感器位置和真正机械零位可能有较大偏差，因此需要以“度”为单位进行第三阶段零位偏置。
+   N.I.N.A、ASCOM 或其他 LX200 客户端可能在连接后发送 GOTO、Sync、Park 或 Tracking 指令。如果当前位置不可信，自动动作可能造成错误指向、绕线或机械碰撞
 
-7. **代码需要兼容有/无 Home 传感器与有/无限位传感器的硬件**：HOME_SENSE 或 LIMIT_SENSE 关闭时，不能让安全锁把原生 OnStep 行为永久锁死。
+4. **安全中断后不能恢复成正常到达**
+
+   GOTO 因限位、驱动故障或回零失败而停止时，不能继续走正常完成流程，更不能在错误坐标上自动开始 Tracking
+
+5. **触发物理限位后仍需要反向脱困**
+
+   如果限位触发后锁死所有手动方向，设备会停在开关上无法退出。如果完全不限制方向，又可能继续向危险侧运动
+
+6. **Home 开关位置不一定是真实机械零位**
+
+   传感器安装位置与目标零位可能存在角度偏差，需要在快速搜索和慢速精找后继续执行可配置的双轴偏置
+
+7. **回零失败不能伪装成成功**
+
+   传感器未触发、阶段超时或电机启动失败时，系统必须保留位置恢复要求，不能只因为回零状态机结束就开放 GOTO
+
+8. **MaxESP3 的共享模式引脚需要双轴同步处理**
+
+   MaxESP3 的 Axis1 与 Axis2 共用 M0 和 M1。独立模式 TMC2209 如果按原始双轴独立逻辑切换细分，可能出现硬件细分已经改变而软件步距没有同步的问题
+
+9. **首次连接可能误报 Home**
+
+   `atHome` 只能说明内部状态位于 Home，不能单独证明当前机械位置可信。客户端状态必须同时检查位置恢复状态
+
+10. **有无 Home 传感器都需要可恢复路径**
+
+    有传感器时可以自动 Find Home。没有传感器时则需要保留坐标 Home 和人工 Set Home 的恢复方式，不能被新增安全锁永久限制
 
 ---
 
 ## ✨ 核心功能特性 (Key Features)
 
-1. **开机电子抱闸防溜车**  
-   开机后只使能步进电机驱动器，不启动 Tracking，不建立 Home 坐标，利用电机保持力矩防止谐波赤道仪滑落。
+1. **开机电机保持**
 
-2. **未回零前禁止 GOTO**  
-   当 HOME_SENSE 启用且 `systemHasHomed == false`，或上一次 GOTO 被安全中断后尚未重新 Home 时，`:MS#` 会返回 standby 状态，阻止 N.I.N.A. / ASCOM 执行自动 GOTO。
+   上电后使能双轴驱动器，使用跟踪细分和跟踪电流保持当前位置，但不启动 Tracking，也不声明已经完成 Home
 
-3. **未回零前禁止 Tracking**  
-   当坐标基准不可信时，`:Te#` 等 Tracking 指令会被拒绝，避免 GOTO 被拦截后上位机误开恒星跟踪。
+2. **独立的位置可信状态**
 
-4. **未回零时允许手动方向键**  
-   当前最终代码不再因为“未回零”而锁死 `:Me# / :Mw# / :Mn# / :Ms#`。这样开机后仍可手动调整姿态，便于救机、找传感器或脱离机械风险。
+   使用 `mountPositionTrusted` 与 `positionRecoveryRequired` 区分正常使用、仅允许坐标回零和位置完全不可信三种状态
 
-5. **限位智能脱困 (Smart Escape)**  
-   触发物理限位后，代码记录 Axis1 / Axis2 的危险方向，只静默拒绝继续撞限位的一侧，并允许反方向移动。
+3. **自动命令统一进入安全检查**
 
-6. **安全中断后强制重新 Home**  
-   如果 GOTO 或运动过程中触发安全中断，系统会标记坐标不可信，后续 GOTO 与 Tracking 需要重新 Find Home 或 Set Home 后才恢复。
+   GOTO、Sync、Park 和开启 Tracking 都依赖 `positionReady()`，不会因为命令入口不同而绕过回零要求
 
-7. **三阶段自动回零状态机**  
-   Home 流程包含快速找零、慢速精找、第三阶段零位偏置。第一/第二阶段均有超时保护，第三阶段按配置角度和速度档位进行定时偏置。
+4. **未回零仍允许手动移动**
 
-8. **回零成功才解锁坐标可信状态**  
-   `systemHasHomed = true` 只在 Home 真正完成、Set Home 手动确认或 HOME_SENSE 关闭时的原生 Home 完成后设置，避免失败回零误解锁。
+   手动 East、West、North、South 不依赖位置可信状态，方便用户找零、调整姿态和处理机械风险
 
-9. **传感器宏绑定兼容**  
-   HOME_SENSE 关闭时，代码尽量恢复原生 OnStep 行为；LIMIT_SENSE 关闭时，限位方向锁和脱困逻辑不参与控制。
+5. **物理限位反向脱困**
 
-10. **保留原生 GOTO 校验**  
-    Horizon Limit、Axis1/Axis2 机械范围、Meridian 限制等仍由原生 `validateGotoCoords()` / `goToEqu()` 路径处理。N.I.N.A. 报 `Coordinates outside limits` 时，应优先检查地平线限制、Axis1 limit、经纬度和目标几何位置。
+   限位触发后记录危险方向，只拒绝继续撞击的一侧，允许相反方向手动退出
+
+6. **三阶段自动回零**
+
+   自动 Home 依次执行快速搜索、慢速精找和零位偏置，双轴全部停稳后才重建坐标
+
+7. **ST4 长按一键回零**
+
+   同时长按 East 和 West 超过 3 秒可启动快速回零，并通过按键锁避免残留输入干扰状态机
+
+8. **GOTO 中断分类**
+
+   区分普通停止、物理硬停止和位置丢失，按风险等级决定是否停止 Tracking 和要求重新 Home
+
+9. **客户端状态修复**
+
+   `:GU#` 只有在 `atHome` 与 `positionReady()` 同时成立时才返回 `H`。被拒绝的 `:Te#` 会立即回复失败，不再让客户端等待通信超时
+
+10. **MaxESP3 TMC2209 共享细分支持**
+
+    双轴共享 M0 和 M1 时统一判断 GOTO 模式，在可安全切换的位置同步更新硬件模式与软件步距
+
+11. **配置校验与中文说明**
+
+    新增开机策略、回零速度、偏置角度和共享细分规则校验，并在 `Config.h` 与 MaxESP3 引脚文件中补充中文说明
 
 ---
 
 ## 🛠️ 代码修改与源码对照 (Code Modification Guide)
 
-### 1. 开机自动使能电机防止“溜车”滑落
+下表汇总本地代码相对原始 OnStep 4.24 的 20 项修改。后文按相同编号给出修改代码和功能说明
 
-- **文件**：`Config.h`、`OnStep.ino`
-- **修改逻辑**：新增并启用 `MOTOR_HOLD_ON_BOOT`。开机后使能电机驱动器，但不启动 Tracking，也不把当前位置设为 Home。
+| 编号 | 修改主题 | 主要文件 | 相对原始 OnStep 4.24 的变化 | 修改带来的功能 |
+| --- | --- | --- | --- | --- |
+| 1 | 开机保持与位置确认 | `Config.h` `OnStep.ino` | 新增开机回零要求和电机保持策略 | 上电后保持双轴但不启动 Tracking |
+| 2 | 位置可信模型 | `OnStep.ino` | 新增位置可信状态 恢复状态和 GOTO 中断类型 | 区分正常使用 坐标回零恢复和位置丢失 |
+| 3 | ST4 一键回零 | `Guide.ino` | 新增长按 East 与 West 启动回零的按键逻辑 | 无需上位机即可触发自动回零 |
+| 4 | GOTO 与 Sync 安全锁 | `Goto.ino` | 将 `positionReady()` 纳入 GOTO 和 Sync 校验 | 位置恢复前禁止自动指向和同步 |
+| 5 | Tracking 失败反馈 | `Command.ino` | 开启 Tracking 前检查位置并立即返回结果 | 避免错误启动和客户端通信超时 |
+| 6 | Park 安全锁 | `Park.ino` | Park 前增加位置可信检查 | 防止使用错误坐标执行驻留 |
+| 7 | Guide 反向脱困 | `Guide.ino` | 按限位方向拦截 Guide 并保留反向移动 | 阻止继续撞限位同时允许退出危险位置 |
+| 8 | 物理限位方向记录 | `OnStep.ino` | 记录双轴危险方向并判断是否已经逃离限位 | 实现硬停止和反向移动后的自动解锁 |
+| 9 | Home 状态修复 | `Command.ino` | `:GU#` 同时检查 `atHome` 和 `positionReady()` | 避免客户端首次连接误报已经回零 |
+| 10 | 三阶段自动回零 | `Home.ino` | 新增慢速精找和零位偏置阶段 | 从找到传感器提升为恢复真实机械零位 |
+| 11 | Home 参数配置 | `Config.h` `Home.ino` | 回零速度 超时和双轴偏置改为可配置 | 便于适配不同传动比和传感器位置 |
+| 12 | 回零失败保护 | `Home.ino` | 阶段超时或电机启动失败时保留位置锁 | 防止失败流程被当作回零成功 |
+| 13 | 回零成功判定 | `Home.ino` | 只在 `FH_DONE` 中重新建立可信位置 | 确保全部阶段完成后才开放自动动作 |
+| 14 | 无传感器恢复路径 | `Home.ino` | `HOME_SENSE` 关闭时保留坐标 Home | 无传感器配置仍可完成位置恢复 |
+| 15 | 人工 Set Home 恢复 | `Home.ino` | Set Home 后统一清除中断并恢复可信位置 | 提供明确的人工位置恢复入口 |
+| 16 | 坐标 Home 中断保护 | `MoveTo.ino` | 检查坐标 Home 是否完整结束 | 中断的回零不会错误解除位置锁 |
+| 17 | GOTO 分类收尾 | `Goto.ino` `MoveTo.ino` | 按正常到达 普通停止 硬停止和位置丢失分别处理 | 防止安全中断后自动进入 Tracking |
+| 18 | 停止等级标记 | `OnStep.ino` | `stopSlewingAndTracking()` 按停止来源写入中断等级 | 按风险决定是否要求重新回零 |
+| 19 | MaxESP3 引脚与校验 | `Pins.MaxESP3.h` `Validate.MaxESP3.h` `Validate.h` `Validate.TMC2209.h` | 重整引脚定义并增加共享模式配置校验 | 让固件配置匹配本地 MaxESP3 硬件 |
+| 20 | TMC2209 双轴细分切换 | `Timer.ino` `StepMode.ino` | 共享 M0 和 M1 时同步切换双轴硬件模式与软件步距 | 在 Tracking 与 GOTO 间切换时保持双轴坐标一致 |
+
+### 1. 开机自动使能电机并要求位置确认
+
+- **对照基准**：原始 OnStep 4.24 没有独立的开机回零要求和电机保持选项
+- **修改文件**：`Config.h`、`OnStep.ino`
+- **修改逻辑**：新增三个彼此独立的策略开关，并在启动流程中分别处理位置状态和驱动器保持
 
 ```cpp
 // Config.h
-#define MOTOR_HOLD_ON_BOOT             ON // 只使能驱动器，不启动 tracking，不建立 home 坐标
+#define HOME_REQUIRED_ON_BOOT          ON
+#define HOME_REQUIRED_AFTER_LIMIT      ON
+#define MOTOR_HOLD_ON_BOOT             ON
 ```
 
 ```cpp
 // OnStep.ino
-#if MOTOR_HOLD_ON_BOOT == ON
+#if HOME_REQUIRED_ON_BOOT == ON
   #if MOUNT_TYPE != ALTAZM
-    VLF("MSG: Motor hold on boot - drivers enabled, tracking off, home required");
+    #if HOME_SENSE == OFF
+      requireCoordinateHomeRecovery();
+    #else
+      invalidatePositionReference();
+    #endif
 
-    systemHasHomed = false;
-    gotoAbortedBySafety = false;
-    gotoRequiresHomeAfterAbort = false;
-
-    Axis1_LimitLock = 0;
-    Axis2_LimitLock = 0;
-
+    gotoAbortState = GOTO_ABORT_NONE;
     trackingState = TrackingNone;
     lastTrackingState = TrackingNone;
     abortTrackingState = TrackingNone;
+    safetyLimitsOn = false;
+  #endif
+#endif
 
+#if MOTOR_HOLD_ON_BOOT == ON
+  #if MOUNT_TYPE != ALTAZM
     enableStepperDrivers();
+    axis1DriverTrackingMode(false);
+    axis2DriverTrackingMode(false);
   #endif
 #endif
 ```
 
-**实际效果**：  
-开机后电机立即获得保持力矩，但赤道仪不会自动跟踪，也不会误认为已经完成 Home。
+**修改带来的功能**
+
+开机后电机立即获得保持力矩。Tracking 保持关闭，有 Home 传感器时位置被标记为不可信，没有 Home 传感器时只保留返回坐标 Home 的能力
 
 ---
 
-### 2. 新增全局安全状态变量
+### 2. 新增位置可信状态与 GOTO 中断分类
 
-- **文件**：`OnStep.ino`
-- **修改逻辑**：在 OnStep 主文件顶部定义限位方向锁、GOTO 安全中断状态、强制回零状态。
+- **对照基准**：原始 OnStep 4.24 主要依赖 `atHome`、`trackingState` 和 `generalError`，没有独立的位置可信模型
+- **修改文件**：`OnStep.ino`
+- **修改逻辑**：新增位置状态、恢复状态和 GOTO 中断类型
 
 ```cpp
-int Axis1_LimitLock = 0;
-int Axis2_LimitLock = 0;
-unsigned long lastLimitTriggerTime = 0;
+enum GotoAbortState {
+  GOTO_ABORT_NONE,
+  GOTO_ABORT_STOPPED,
+  GOTO_ABORT_HARD_STOP,
+  GOTO_ABORT_POSITION_LOST
+};
 
-bool gotoAbortedBySafety = false;
-bool gotoRequiresHomeAfterAbort = false;
-bool systemHasHomed = false;
+GotoAbortState gotoAbortState = GOTO_ABORT_NONE;
+bool gotoStartTrackingOnSuccess = false;
+bool mountPositionTrusted = true;
+bool positionRecoveryRequired = false;
 ```
 
-**变量含义**：
+```cpp
+bool positionReady() {
+  return mountPositionTrusted && !positionRecoveryRequired;
+}
 
-| 变量 | 含义 |
-|---|---|
-| `Axis1_LimitLock` | Axis1 当前被锁死的危险方向，`0` 表示无限位锁 |
-| `Axis2_LimitLock` | Axis2 当前被锁死的危险方向，`0` 表示无限位锁 |
-| `lastLimitTriggerTime` | 限位释放后的清锁延时计时 |
-| `gotoAbortedBySafety` | 本次 GOTO 是否被限位/安全逻辑中断 |
-| `gotoRequiresHomeAfterAbort` | 安全中断后是否要求重新 Home |
-| `systemHasHomed` | 当前坐标基准是否可信 |
+bool positionHomeReturnOnly() {
+  return mountPositionTrusted && positionRecoveryRequired;
+}
+
+void requireCoordinateHomeRecovery() {
+  mountPositionTrusted = true;
+  positionRecoveryRequired = true;
+  gotoStartTrackingOnSuccess = false;
+}
+
+void invalidatePositionReference() {
+  mountPositionTrusted = false;
+  positionRecoveryRequired = true;
+  gotoStartTrackingOnSuccess = false;
+}
+
+void completePositionRecovery() {
+  mountPositionTrusted = true;
+  positionRecoveryRequired = false;
+  gotoAbortState = GOTO_ABORT_NONE;
+  gotoStartTrackingOnSuccess = false;
+  clearPhysicalLimitState();
+}
+```
+
+**修改带来的功能**
+
+停止运动不再等于位置可信。限位、故障、回零失败和正常停止可以进入不同的恢复路径，所有自动动作共用同一套位置判断
 
 ---
 
-### 3. 复用 ST4 接口实现物理“一键回零”
+### 3. 复用 ST4 接口实现实体按键一键回零
 
-- **文件**：`Guide.ino` -> `ST4()` 函数
-- **修改逻辑**：利用 ST4 East + West 同时长按 3 秒触发 `goHome(true)`。触发后使用 `homingLockout` 屏蔽按键干扰，防止回零过程被组合按键或残留按压打断。
+- **对照基准**：原始 OnStep 4.24 的 East 与 West 长按用于 Alt Mode，没有 3 秒 Find Home 入口
+- **修改文件**：`Guide.ino`
+- **修改逻辑**：增加 3 秒组合键和释放锁，保留原有 2 秒 Alt Mode
 
 ```cpp
 static bool homingLockout = false;
 
 if (homingLockout) {
-  if (!st4e.isDown() && !st4w.isDown() && !st4n.isDown() && !st4s.isDown()) {
+  if (!st4e.isDown() && !st4w.isDown() &&
+      !st4n.isDown() && !st4s.isDown()) {
     homingLockout = false;
   }
   return;
 }
 
-if ((trackingState != TrackingMoveTo) && (!waitingHome)) {
+if (trackingState != TrackingMoveTo && !waitingHome) {
   if (st4e.isDown() && st4w.isDown()) {
-    if ((st4e.timeDown() > 3000) && (st4w.timeDown() > 3000)) {
+    if (st4e.timeDown() > 3000 && st4w.timeDown() > 3000) {
       homingLockout = true;
       soundBeep();
       altModeA = false;
@@ -164,147 +270,137 @@ if ((trackingState != TrackingMoveTo) && (!waitingHome)) {
 }
 ```
 
-**实际效果**：  
-外接实体按键同时按下 East + West 超过 3 秒，即可触发自动回零。代码保留原本 ST4 AltMode 逻辑，但在触发回零时会清理 `altModeA`，避免 2 秒组合键状态污染 3 秒回零动作。
+**修改带来的功能**
+
+不连接电脑也能启动自动回零。触发后会清理 Alt Mode 和当前运动，全部按键松开后才恢复 ST4 输入，避免残留按压干扰回零
 
 ---
 
-### 4. GOTO 指令拦截：未 Home 或安全中断后禁止 `:MS#`
+### 4. 统一拦截未恢复状态下的 GOTO 与 Sync
 
-- **文件**：`Command.ino`
-- **修改位置**：`:MS#` 指令处理处
-- **修改逻辑**：当坐标基准不可信时，不进入原生 `goToEqu()`，而是返回 `3`，表示 controller in standby / not ready。
+- **对照基准**：原始 `validateGoto()` 只检查 Park、电机使能、运动状态和驱动故障
+- **修改文件**：`Goto.ino`
+- **修改逻辑**：在所有 GOTO 与 Sync 共用的校验函数中加入 `positionReady()`
 
 ```cpp
-if (command[1] == 'S' && parameter[0] == 0)  {
-  if (!systemHasHomed || gotoRequiresHomeAfterAbort) {
-    reply[0] = '3';
-    reply[1] = 0;
-    boolReply = false;
-    supress_frame = true;
-    commandError = CE_SLEW_ERR_IN_STANDBY;
-  } else {
-    newTargetRA = origTargetRA;
-    newTargetDec = origTargetDec;
-#if TELESCOPE_COORDINATES == TOPOCENTRIC
-    topocentricToObservedPlace(&newTargetRA, &newTargetDec);
-#endif
-    CommandErrors e = goToEqu(newTargetRA, newTargetDec);
-    if (e >= CE_GOTO_ERR_BELOW_HORIZON && e <= CE_GOTO_ERR_UNSPECIFIED) reply[0] = (char)(e - CE_GOTO_ERR_BELOW_HORIZON) + '1';
-    if (e == CE_NONE) reply[0] = '0';
-    reply[1] = 0;
-    boolReply = false;
-    supress_frame = true;
-    commandError = e;
-  }
+CommandErrors validateGoto() {
+  if (parkStatus != NotParked)                 return CE_SLEW_ERR_IN_PARK;
+  if (!axis1Enabled)                           return CE_SLEW_ERR_IN_STANDBY;
+  if (trackingSyncInProgress())                return CE_MOUNT_IN_MOTION;
+  if (trackingState == TrackingMoveTo)         return CE_GOTO_ERR_GOTO;
+  if (guideDirAxis1 || guideDirAxis2)          return CE_MOUNT_IN_MOTION;
+  if (faultAxis1 || faultAxis2)                return CE_SLEW_ERR_HARDWARE_FAULT;
+  if (!positionReady())                        return CE_SLEW_ERR_IN_STANDBY;
+  return CE_NONE;
 }
 ```
 
-**实际效果**：  
-未完成 Home、或触发过安全中断但尚未重新 Home 时，N.I.N.A. / ASCOM 不会真正启动 GOTO。
+**修改带来的功能**
+
+`:MS#`、Sync 和其他自动指向入口都无法绕过位置检查。位置未恢复时返回 standby，上游原有的地平线、双轴范围、中天和墩侧校验继续保留
 
 ---
 
-### 5. Tracking 指令拦截：未 Home 或安全中断后禁止开启跟踪
+### 5. Tracking 指令被拦截时立即回复失败
 
-- **文件**：`Command.ino`
-- **修改位置**：`:T...#` 指令处理处
-- **修改逻辑**：只要坐标基准不可信，就拒绝 Tracking 指令，避免“幽灵跟踪”。
+- **对照基准**：原始 `:Te#` 没有位置可信检查
+- **修改文件**：`Command.ino`
+- **修改逻辑**：只拦截开启 Tracking，不影响停止 Tracking，并保留布尔回复
 
 ```cpp
 if (command[0] == 'T' && parameter[0] == 0) {
-  if (!systemHasHomed || gotoRequiresHomeAfterAbort) {
-    reply[0] = 0;
-    boolReply = false;
-    supress_frame = true;
+  const bool trackingBlockedUntilRecovery =
+    command[1] == 'e' && !positionReady();
+
+  if (trackingBlockedUntilRecovery) {
     commandError = CE_SLEW_ERR_IN_STANDBY;
-    return;
-  }
-
-  // 原生 Tracking 逻辑继续执行
-}
-```
-
-**实际效果**：  
-GOTO 被拒绝后，上位机即使尝试打开 Tracking，也会被拦截。
-
----
-
-### 6. 手动方向键逻辑：未 Home 允许移动，只锁限位危险方向
-
-- **文件**：`Command.ino`
-- **修改位置**：`:Me# / :Mw# / :Mn# / :Ms#`
-- **修改逻辑**：删除“未 Home 禁止手动方向键”的限制；只根据限位锁判断是否禁止当前方向。
-
-```cpp
-// :Me# :Mw#
-if ((command[1] == 'e' || command[1] == 'w') && parameter[0] == 0) {
-  if ((command[1] == 'e' && Axis1_LimitLock == 1) ||
-      (command[1] == 'w' && Axis1_LimitLock == -1)) {
-    boolReply = false;
-    commandError = CE_NONE;
   } else {
-    commandError = startGuideAxis1(command[1], currentGuideRate, GUIDE_TIME_LIMIT * 1000, false);
-    boolReply = false;
-  }
-}
-
-// :Mn# :Ms#
-if ((command[1] == 'n' || command[1] == 's') && parameter[0] == 0) {
-  if ((command[1] == 'n' && Axis2_LimitLock == 1) ||
-      (command[1] == 's' && Axis2_LimitLock == -1)) {
-    boolReply = false;
-    commandError = CE_NONE;
-  } else {
-    commandError = startGuideAxis2(command[1], currentGuideRate, GUIDE_TIME_LIMIT * 1000, false);
-    boolReply = false;
+    // 原始 Tracking 命令继续处理
   }
 }
 ```
 
-**实际效果**：  
-开机未回零时可以手动移动。触发限位后，危险方向静默拒绝，反方向仍可脱困。
+**修改带来的功能**
+
+位置不可信时 `:Te#` 不会启动恒星跟踪。命令处理器会立即返回 `0`，避免 N.I.N.A 或 ASCOM 一直等待到通信超时
 
 ---
 
-### 7. Guide 层限位脱困：危险方向禁止，反方向允许
+### 6. Park 位置增加可信状态检查
 
-- **文件**：`Guide.ino`
-- **修改位置**：`startGuideAxis1()`、`startGuideAxis2()`
-- **修改逻辑**：在底层 guide 启动处再次判断限位方向锁，防止任何入口绕过 Command 层。
-
-```cpp
-// Axis1
-if (direction == 'e' && Axis1_LimitLock == 1)  return CE_SLEW_ERR_OUTSIDE_LIMITS;
-if (direction == 'w' && Axis1_LimitLock == -1) return CE_SLEW_ERR_OUTSIDE_LIMITS;
-
-bool escapingPhysicalLimitAxis1 = (generalError == ERR_LIMIT_SENSE) &&
-                                  ((direction == 'e' && Axis1_LimitLock == -1) ||
-                                   (direction == 'w' && Axis1_LimitLock == 1));
-```
+- **对照基准**：原始 OnStep 4.24 在设备停止且驱动无故障时即可保存 Park 位置
+- **修改文件**：`Park.ino`
+- **修改逻辑**：保存 Park 前增加位置可信检查
 
 ```cpp
-// Axis2
-if (direction == 'n' && Axis2_LimitLock == 1)  return CE_SLEW_ERR_OUTSIDE_LIMITS;
-if (direction == 's' && Axis2_LimitLock == -1) return CE_SLEW_ERR_OUTSIDE_LIMITS;
+CommandErrors setPark() {
+  if (parkStatus == ParkFailed)         return CE_PARK_FAILED;
+  if (parkStatus == Parked)             return CE_PARKED;
+  if (isSlewing())                      return CE_MOUNT_IN_MOTION;
+  if (faultAxis1 || faultAxis2)         return CE_SLEW_ERR_HARDWARE_FAULT;
+  if (!positionReady())                 return CE_SLEW_ERR_IN_STANDBY;
 
-bool escapingPhysicalLimitAxis2 = (generalError == ERR_LIMIT_SENSE) &&
-                                  ((direction == 'n' && Axis2_LimitLock == -1) ||
-                                   (direction == 's' && Axis2_LimitLock == 1));
+  // 原始 Park 保存逻辑继续执行
+}
 ```
 
-**实际效果**：  
-即使 `generalError == ERR_LIMIT_SENSE`，只要当前方向是反向脱困方向，guide 仍可启动。
+**修改带来的功能**
+
+未回零或位置失信时不能保存错误的 Park 坐标，避免下一次启动从错误位置恢复
 
 ---
 
-### 8. loop2() 限位检测与智能方向锁
+### 7. Guide 层只锁危险方向并允许反向脱困
 
-- **文件**：`OnStep.ino`
-- **修改位置**：`loop2()` 中 `#if LIMIT_SENSE != OFF` 段
-- **修改逻辑**：读取物理限位引脚，检测到稳定触发后判断当前运动方向，记录危险方向，并在非脱困方向上执行硬停止。
+- **对照基准**：原始 Guide 层遇到 `ERR_LIMIT_SENSE` 时没有物理限位方向锁
+- **修改文件**：`Guide.ino`
+- **修改逻辑**：Axis1 与 Axis2 分别检查危险方向，并为相反方向建立脱困例外
 
-核心逻辑：
+```cpp
+bool escapingPhysicalLimitAxis1 = false;
+
+#if LIMIT_SENSE != OFF
+  if (direction == 'e' && Axis1_LimitLock == 1)
+    return CE_SLEW_ERR_OUTSIDE_LIMITS;
+
+  if (direction == 'w' && Axis1_LimitLock == -1)
+    return CE_SLEW_ERR_OUTSIDE_LIMITS;
+
+  escapingPhysicalLimitAxis1 =
+    generalError == ERR_LIMIT_SENSE &&
+    ((direction == 'e' && Axis1_LimitLock == -1) ||
+     (direction == 'w' && Axis1_LimitLock == 1));
+#endif
+```
+
+```cpp
+bool escapingPhysicalLimitAxis2 = false;
+
+#if LIMIT_SENSE != OFF
+  if (direction == 'n' && Axis2_LimitLock == 1)
+    return CE_SLEW_ERR_OUTSIDE_LIMITS;
+
+  if (direction == 's' && Axis2_LimitLock == -1)
+    return CE_SLEW_ERR_OUTSIDE_LIMITS;
+
+  escapingPhysicalLimitAxis2 =
+    generalError == ERR_LIMIT_SENSE &&
+    ((direction == 'n' && Axis2_LimitLock == -1) ||
+     (direction == 's' && Axis2_LimitLock == 1));
+#endif
+```
+
+**修改带来的功能**
+
+危险方向在 Guide 底层被拒绝，串口、ST4 和其他入口都不能绕过。相反方向可以越过 `ERR_LIMIT_SENSE` 完成脱困
+
+---
+
+### 8. loop2() 增加物理限位方向记录与双轴逃离判断
+
+- **对照基准**：原始 OnStep 4.24 对 LimitPin 进行两次读取，确认触发后直接调用 `SS_LIMIT`
+- **修改文件**：`OnStep.ino`
+- **修改逻辑**：记录当前运动方向，结合轴位置推断静止触发方向，并判断双轴是否都在远离限位
 
 ```cpp
 #if LIMIT_SENSE != OFF
@@ -325,140 +421,205 @@ bool escapingPhysicalLimitAxis2 = (generalError == ERR_LIMIT_SENSE) &&
       int currentMotionDir1 = 0;
       int currentMotionDir2 = 0;
 
-      // 根据 guideDir 或 GOTO target-pos 判断当前运动方向
-      // 然后写入 Axis1_LimitLock / Axis2_LimitLock
+      if (guideDirAxis1 == 'e') currentMotionDir1 = 1;
+      else if (guideDirAxis1 == 'w') currentMotionDir1 = -1;
 
-      bool isEscaping = false;
-      if (Axis1_LimitLock != 0 && currentMotionDir1 != 0 && currentMotionDir1 != Axis1_LimitLock) isEscaping = true;
-      if (Axis2_LimitLock != 0 && currentMotionDir2 != 0 && currentMotionDir2 != Axis2_LimitLock) isEscaping = true;
+      if (guideDirAxis2 == 'n') currentMotionDir2 = 1;
+      else if (guideDirAxis2 == 's') currentMotionDir2 = -1;
+
+      if (trackingState == TrackingMoveTo) {
+        if (targetAxis1.part.m < posAxis1) currentMotionDir1 = 1;
+        else if (targetAxis1.part.m > posAxis1) currentMotionDir1 = -1;
+
+        if (targetAxis2.part.m > posAxis2) currentMotionDir2 = 1;
+        else if (targetAxis2.part.m < posAxis2) currentMotionDir2 = -1;
+      }
+```
+
+```cpp
+      if (Axis1_LimitLock == 0) {
+        if (currentMotionDir1 != 0 && trackingState == TrackingMoveTo) {
+          Axis1_LimitLock = currentMotionDir1;
+        } else {
+          long threshold = 500L;
+          if (posAxis1 > threshold) Axis1_LimitLock = -1;
+          else if (posAxis1 < -threshold) Axis1_LimitLock = 1;
+          else if (currentMotionDir1 != 0)
+            Axis1_LimitLock = currentMotionDir1;
+        }
+      }
+
+      if (Axis2_LimitLock == 0) {
+        if (currentMotionDir2 != 0 && trackingState == TrackingMoveTo) {
+          Axis2_LimitLock = currentMotionDir2;
+        } else {
+          long threshold = 500L;
+          if (posAxis2 > threshold) Axis2_LimitLock = 1;
+          else if (posAxis2 < -threshold) Axis2_LimitLock = -1;
+          else if (currentMotionDir2 != 0)
+            Axis2_LimitLock = currentMotionDir2;
+        }
+      }
+
+      const bool axis1MovingIntoLimit =
+        Axis1_LimitLock != 0 && currentMotionDir1 == Axis1_LimitLock;
+
+      const bool axis2MovingIntoLimit =
+        Axis2_LimitLock != 0 && currentMotionDir2 == Axis2_LimitLock;
+
+      const bool hasEscapeMotion =
+        currentMotionDir1 != 0 || currentMotionDir2 != 0;
+
+      const bool isEscaping =
+        hasEscapeMotion && !axis1MovingIntoLimit && !axis2MovingIntoLimit;
 
       if (!isEscaping) {
         generalError = ERR_LIMIT_SENSE;
-
-#if HOME_SENSE != OFF
-        systemHasHomed = false;
-        gotoRequiresHomeAfterAbort = true;
-        if (trackingState == TrackingMoveTo) gotoAbortedBySafety = true;
-#else
-        systemHasHomed = true;
-        gotoRequiresHomeAfterAbort = false;
-#endif
         stopGuideAxis1();
         stopGuideAxis2();
-        stopSlewingAndTracking(SS_LIMIT_HARD);
+        stopSlewingAndTracking(SS_LIMIT_PHYSICAL);
       }
     }
-  } else {
-    if (currentTime - lastLimitTriggerTime > 500) {
-      if (guideDirAxis1 == 0 && trackingState != TrackingMoveTo) Axis1_LimitLock = 0;
-      if (guideDirAxis2 == 0 && trackingState != TrackingMoveTo) Axis2_LimitLock = 0;
-    }
+  } else if (currentTime - lastLimitTriggerTime > 500) {
+    if (guideDirAxis1 == 0 && trackingState != TrackingMoveTo)
+      Axis1_LimitLock = 0;
+
+    if (guideDirAxis2 == 0 && trackingState != TrackingMoveTo)
+      Axis2_LimitLock = 0;
   }
 #endif
 ```
 
-**实际效果**：
+**修改带来的功能**
 
-| 场景 | 结果 |
-|---|---|
-| GOTO 中撞限位 | 急停，坐标失信，要求重新 Home |
-| 手动撞限位 | 记录危险方向，危险方向禁止，反方向允许 |
-| 回零过程中检测到 LimitPin | 清限位锁并返回，不让普通限位逻辑打断 Home 状态机 |
-| 限位释放并停止运动超过 500ms | 清除方向锁 |
+GOTO 与手动移动都能记录危险侧。双轴中只要仍有一轴朝限位运动就执行停止，限位释放并停稳 500 毫秒后自动清除方向锁
 
 ---
 
-### 9. 修正 wasHoming 误解锁问题
+### 9. 修复客户端首次连接误报已经回零
 
-- **文件**：`OnStep.ino`
-- **修改位置**：`loop2()` 开头的 Homing 状态监听
-- **修改逻辑**：只记录 Homing 是否结束，不在这里设置 `systemHasHomed = true`。
+- **对照基准**：原始 `:GU#` 只根据 `atHome` 返回 `H`
+- **修改文件**：`Command.ino`
+- **修改逻辑**：Home 状态必须同时满足位置可信
 
 ```cpp
-static bool wasHoming = false;
-if (isHoming()) {
-  wasHoming = true;
-} else if (wasHoming) {
-  // 不在这里把 systemHasHomed 置 true。
-  // 真实回零成功只由 Home.ino 的 FH_DONE 或 setHome() 明确设置。
-  wasHoming = false;
-}
+if (atHome && positionReady()) reply[i++] = 'H';
 ```
 
-**实际效果**：  
-回零超时、回零启动失败、回零被中断时，不会因为 Homing 状态结束而被误判为已回零。
+**修改带来的功能**
+
+上电后即使 `atHome` 保留启动值，客户端也不会收到可信 Home。只有 Find Home 或 Set Home 完成并解除恢复锁后才返回 `H`
 
 ---
 
-### 10. 三阶段自动回零状态机
+### 10. 将自动回零扩展为三阶段状态机
 
-- **文件**：`Home.ino`
-- **修改逻辑**：扩展 `findHomeMode`，增加 `FH_IDLE2` 和 `FH_OFFSET`，形成“快速找零 → 慢速精找 → 零位偏置 → 完成解锁”的闭环。
+- **对照基准**：原始 OnStep 4.24 只有快速搜索、慢速精找和完成状态
+- **修改文件**：`Home.ino`
+- **修改逻辑**：增加第二次停稳状态和零位偏置状态
 
 ```cpp
-enum findHomeModes { FH_OFF, FH_FAST, FH_IDLE, FH_SLOW, FH_IDLE2, FH_OFFSET, FH_DONE };
+enum findHomeModes {
+  FH_OFF,
+  FH_FAST,
+  FH_IDLE,
+  FH_SLOW,
+  FH_IDLE2,
+  FH_OFFSET,
+  FH_DONE
+};
 ```
-
-流程如下：
 
 ```text
-FH_FAST   第一阶段：快速寻找 Home switch
-FH_IDLE   第一阶段完成后的过渡状态，自动启动慢速精找
-FH_SLOW   第二阶段：慢速精找 Home switch
-FH_IDLE2  第二阶段完成后的过渡状态，自动启动零位偏置
-FH_OFFSET 第三阶段：按 Config.h 中的偏置角度定时移动
-FH_DONE   完成，初始化真实零位并解锁 GOTO / Tracking
+FH_FAST   快速寻找 Home 开关
+FH_IDLE   等待双轴停止并进入慢速精找
+FH_SLOW   慢速再次寻找 Home 开关
+FH_IDLE2  等待双轴停止并进入零位偏置
+FH_OFFSET 按配置角度移动到真实零位
+FH_DONE   重建坐标并解除恢复锁
 ```
 
-**关键保护**：
+**修改带来的功能**
 
-| 阶段 | 保护逻辑 |
-|---|---|
-| 第一阶段 | 按 180° 行程估算超时时间 |
-| 第二阶段 | 30 秒超时 |
-| 第三阶段 | 根据偏置角度和速度计算运行时间，到点停止 |
-| 任一阶段启动失败 | 退出 Home，不标记成功 |
+Home 开关位置不再被直接当作最终机械零位。传感器负责提供重复定位基准，第三阶段再补偿安装偏差
 
 ---
 
-### 11. Home Offset 改为 Config.h 中的度数与速度档位
+### 11. Home 速度、超时和双轴偏置改为可配置
 
-- **文件**：`Config.h`、`Home.ino`
-- **修改逻辑**：以度为单位配置零位偏置，并通过 `HOME_OFFSET_RATE` 选择第三阶段偏置速度。
+- **对照基准**：原始快速阶段固定 8 档并按 180 度计算超时，慢速阶段固定 7 档和 30 秒超时
+- **修改文件**：`Config.h`、`Home.ino`
+- **修改逻辑**：速度档位与偏置角度由配置决定，阶段超时按角度范围换算
 
 ```cpp
-#define HOME_OFFSET_AXIS1          -1.5
-#define HOME_OFFSET_AXIS2             1
-#define HOME_OFFSET_RATE              8
-
-#if HOME_OFFSET_RATE < 0 || HOME_OFFSET_RATE > 9
-  #error "HOME_OFFSET_RATE must be from 0 to 9"
-#endif
+// Config.h
+#define HOME_FAST_RATE                  9
+#define HOME_SLOW_RATE                  7
+#define HOME_OFFSET_AXIS1            -1.5
+#define HOME_OFFSET_AXIS2               1
+#define HOME_OFFSET_RATE                8
 ```
 
-第三阶段根据速度档位换算每度所需时间：
+```cpp
+// Home.ino 快速阶段
+double secPerDeg = 3600.0 / (double)guideRates[HOME_FAST_RATE];
+findHomeTimeout = millis() +
+  (unsigned long)(secPerDeg * 360.0 * 1000.0);
+
+e = startGuideAxis1(a1, HOME_FAST_RATE, 0, false);
+if (e == CE_NONE)
+  e = startGuideAxis2(a2, HOME_FAST_RATE, 0, false, true);
+```
 
 ```cpp
+// Home.ino 慢速阶段
+double secPerDeg = 3600.0 / (double)guideRates[HOME_SLOW_RATE];
+findHomeTimeout = millis() +
+  (unsigned long)(secPerDeg * 6.0 * 1000.0);
+
+e = startGuideAxis1(a1, HOME_SLOW_RATE, 0, false);
+if (e == CE_NONE)
+  e = startGuideAxis2(a2, HOME_SLOW_RATE, 0, false, true);
+```
+
+```cpp
+// Home.ino 偏置阶段
 double secPerDeg = 3600.0 / (double)guideRates[HOME_OFFSET_RATE];
+
+char dir1 = HOME_OFFSET_AXIS1 > 0 ? 'e' : 'w';
+unsigned long duration1 =
+  (unsigned long)(fabs(HOME_OFFSET_AXIS1) * secPerDeg * 1000.0);
+
+char dir2 = HOME_OFFSET_AXIS2 > 0 ? 'n' : 's';
+unsigned long duration2 =
+  (unsigned long)(fabs(HOME_OFFSET_AXIS2) * secPerDeg * 1000.0);
 ```
 
-再根据偏置角度启动对应方向 guide：
+**修改带来的功能**
 
-```cpp
-char dir1 = (HOME_OFFSET_AXIS1 > 0) ? 'e' : 'w';
-unsigned long duration1 = (unsigned long)(fabs(HOME_OFFSET_AXIS1) * secPerDeg * 1000.0);
-e1 = startGuideAxis1(dir1, HOME_OFFSET_RATE, 0, false);
-```
-
-**实际效果**：  
-Home switch 停止位置不再被直接当作最终零位，而是在第二阶段精找后继续执行第三阶段偏置，最终把“传感器位置 + 偏置量”作为真实零位。
+第一阶段保持约 360 度搜索余量，第二阶段保持约 6 度精找范围。修改速度后超时保护仍与机械角度对应，双轴偏置可以分别设置方向和角度
 
 ---
 
-### 12. 第三阶段启动失败保护
+### 12. 回零阶段超时或启动失败时保留位置锁
 
-- **文件**：`Home.ino`
-- **修改逻辑**：第三阶段 Axis1 或 Axis2 偏置启动失败时，不继续伪装为完成，而是退出 Home 并报错。
+- **对照基准**：原始回零失败会停止流程，但没有独立的位置可信状态需要维护
+- **修改文件**：`Home.ino`
+- **修改逻辑**：第一、第二、第三阶段失败都退出 Home，并确保位置仍然不可信
+
+```cpp
+if ((long)(millis() - findHomeTimeout) > 0L ||
+    (guideDirAxis1 == 0 && guideDirAxis2 == 0)) {
+
+  if ((long)(millis() - findHomeTimeout) > 0L)
+    generalError = ERR_LIMIT_SENSE;
+
+  safetyLimitsOn = true;
+  invalidatePositionReference();
+  gotoAbortState = GOTO_ABORT_NONE;
+  findHomeMode = FH_OFF;
+}
+```
 
 ```cpp
 if (e1 != CE_NONE || e2 != CE_NONE) {
@@ -471,32 +632,46 @@ if (e1 != CE_NONE || e2 != CE_NONE) {
 }
 ```
 
-**实际效果**：  
-第三阶段如果因为限位、硬件、状态错误等原因无法启动，不会进入 `FH_DONE`，也不会把 `systemHasHomed` 置为 true。
+```cpp
+if (e != CE_NONE) {
+  findHomeMode = FH_OFF;
+  safetyLimitsOn = true;
+  stopSlewingAndTracking(SS_ALL_FAST);
+}
+```
+
+**修改带来的功能**
+
+传感器未触发、搜索超时或偏置启动失败时不会继续进入 `FH_DONE`。GOTO 与 Tracking 仍保持锁定，用户可以重新 Find Home 或人工 Set Home
 
 ---
 
-### 13. Home 完成后才设置坐标可信
+### 13. 只有 FH_DONE 才重新建立可信位置
 
-- **文件**：`Home.ino`
-- **修改位置**：`FH_DONE` 分支
-- **修改逻辑**：只有三阶段全部完成并停稳后，才初始化起始位置，设置 `atHome = true`，并清理安全锁。
+- **对照基准**：原始完成状态只负责设置起始位置和 `atHome`
+- **修改文件**：`Home.ino`
+- **修改逻辑**：完成三阶段并停稳后统一清理恢复状态和限位方向锁
 
 ```cpp
-if (findHomeMode == FH_DONE && guideDirAxis1 == 0 && guideDirAxis2 == 0) {
+if (findHomeMode == FH_DONE &&
+    guideDirAxis1 == 0 && guideDirAxis2 == 0) {
+
   findHomeMode = FH_OFF;
-  VLF("MSG: Homing done");
 
-  initStartPosition();
-  atHome = true;
+  #if AXIS2_TANGENT_ARM == ON
+    trackingState = abortTrackingState;
+    cli();
+    targetAxis2.part.m = 0;
+    targetAxis2.part.f = 0;
+    posAxis2 = 0;
+    sei();
+  #else
+    initStartPosition();
+    atHome = true;
+  #endif
 
-  systemHasHomed = true;
-  gotoAbortedBySafety = false;
-  gotoRequiresHomeAfterAbort = false;
-
-  Axis1_LimitLock = 0;
-  Axis2_LimitLock = 0;
-
+  completePositionRecovery();
+  safetyLimitsOn = true;
   abortGoto = 0;
   lastTrackingState = TrackingNone;
   abortTrackingState = TrackingNone;
@@ -504,173 +679,356 @@ if (findHomeMode == FH_DONE && guideDirAxis1 == 0 && guideDirAxis2 == 0) {
 }
 ```
 
-**实际效果**：  
-只有 Home 真正完成后，后续 GOTO / Tracking 才会恢复。
+**修改带来的功能**
+
+只有快速搜索、慢速精找和零位偏置全部成功后才开放自动动作。完成时同时清除旧限位锁、GOTO 中断和错误状态
 
 ---
 
-### 14. goHome() 启动失败保护
+### 14. HOME_SENSE 关闭时保留坐标 Home 恢复路径
 
-- **文件**：`Home.ino`
-- **修改位置**：`goHome(bool fast)`
-- **修改逻辑**：第一阶段或第二阶段 guide 启动失败时，立即退出 Homing 状态，恢复安全限制并停止运动。
-
-```cpp
-if (e != CE_NONE) {
-  findHomeMode = FH_OFF;
-  safetyLimitsOn = true;
-  stopSlewingAndTracking(SS_ALL_FAST);
-}
-return e;
-```
-
-**实际效果**：  
-如果 `startGuideAxis1()` 或 `startGuideAxis2()` 没能成功启动，系统不会卡在 FH_FAST / FH_SLOW，也不会进入后续阶段。
-
----
-
-### 15. isHoming() 与 HOME_SENSE 宏绑定
-
-- **文件**：`Home.ino`
-- **修改逻辑**：当 HOME_SENSE 启用时，Homing 包含自动传感器回零状态机；当 HOME_SENSE 关闭时，只保留原生 `homeMount` 行为。
+- **对照基准**：新增位置安全锁后，无传感器设备需要一条不会被 `positionReady()` 永久阻断的回零路径
+- **修改文件**：`Home.ino`
+- **修改逻辑**：位置仍可信但要求恢复时，只允许原生坐标 Home 使用这份坐标
 
 ```cpp
-bool isHoming() {
-#if HOME_SENSE != OFF
-  return (homeMount || (findHomeMode != FH_OFF));
+#if HOME_SENSE == OFF
+  const bool homeMayOverridePark = positionHomeReturnOnly();
 #else
-  return homeMount;
+  const bool homeMayOverridePark = !positionReady();
 #endif
+
+if (parkStatus == Parked && homeMayOverridePark) {
+  parkStatus = NotParked;
+  nv.write(EE_parkStatus, parkStatus);
 }
 ```
 
-**实际效果**：  
-启用 Home 传感器时，安全锁知道当前正在自动回零；关闭 Home 传感器时，不会因为缺少 `findHomeMode` 而破坏原生逻辑。
-
----
-
-### 16. Set Home 手动确认后解锁
-
-- **文件**：`Home.ino`
-- **修改位置**：`setHome()`
-- **修改逻辑**：用户手动执行 Set Home 后，视为当前位置已经被人工确认可信，因此清理安全锁并允许后续 GOTO / Tracking。
-
 ```cpp
-systemHasHomed = true;
-gotoAbortedBySafety = false;
-gotoRequiresHomeAfterAbort = false;
-Axis1_LimitLock = 0;
-Axis2_LimitLock = 0;
-abortGoto = 0;
-generalError = ERR_NONE;
+#if HOME_SENSE == OFF
+  const bool coordinateHomeSafe =
+    parkStatus == NotParked &&
+    !trackingSyncInProgress() &&
+    trackingState != TrackingMoveTo &&
+    guideDirAxis1 == 0 && guideDirAxis2 == 0 &&
+    !faultAxis1 && !faultAxis2;
+
+  if (e == CE_SLEW_ERR_IN_STANDBY &&
+      coordinateHomeSafe && positionHomeReturnOnly()) {
+    enableStepperDrivers();
+    e = CE_NONE;
+  }
+#endif
 ```
 
-**实际效果**：  
-如果不使用自动 Find Home，也可以通过手动移动到正确零位后执行 Set Home 来建立坐标基准。
+**修改带来的功能**
+
+关闭 Home 传感器时，设备仍能依靠可信的开环坐标返回 Home。若位置已经完全不可信，则必须由用户把机械结构放回零位后执行 Set Home
 
 ---
 
-### 17. HOME_SENSE 关闭时保留原生 Home 完成逻辑
+### 15. Set Home 成为明确的人工恢复入口
 
-- **文件**：`MoveTo.ino`
-- **修改逻辑**：当 HOME_SENSE 关闭时，原生 `goHome()` 通过 `homeMount` 和 `moveTo()` 回到 Home。完成后也要恢复 `systemHasHomed = true`，否则无 Home 传感器设备会被永久锁定。
+- **对照基准**：原始 Set Home 会重建起始位置，但不需要处理新增的位置恢复状态
+- **修改文件**：`Home.ino`
+- **修改逻辑**：用户确认机械零位后统一恢复位置可信并清理安全残留
+
+```cpp
+CommandErrors setHome() {
+  if (isSlewing()) return CE_MOUNT_IN_MOTION;
+
+  reactivateBacklashComp();
+  initStartupValues();
+  initStartPosition();
+  safetyLimitsOn = true;
+  StepperModeTrackingInit();
+
+  // 原始 PEC 与 Park 状态处理继续执行
+
+  completePositionRecovery();
+  abortGoto = 0;
+  generalError = ERR_NONE;
+  return CE_NONE;
+}
+```
+
+**修改带来的功能**
+
+有无 Home 传感器都可以通过 Set Home 人工确认机械位置。该命令会解除位置恢复锁，但不会自动寻找零位，执行前必须由用户确认姿态正确
+
+---
+
+### 16. 坐标 Home 被中断时不解除恢复状态
+
+- **对照基准**：原始 `MoveTo.ino` 在坐标 Home 结束后恢复 Tracking 并设置 `atHome`
+- **修改文件**：`MoveTo.ino`
+- **修改逻辑**：先检查 Home 运动是否被安全状态中断，再决定是否完成恢复
 
 ```cpp
 if (homeMount) {
-  homeMount = false;
-  if (AXIS2_TANGENT_ARM == OFF) atHome = true;
+  const GotoAbortState completedHomeState = gotoAbortState;
 
-  systemHasHomed = true;
-  gotoAbortedBySafety = false;
-  gotoRequiresHomeAfterAbort = false;
-  Axis1_LimitLock = 0;
-  Axis2_LimitLock = 0;
-
-  VLF("MSG: Homing done");
+  if (completedHomeState != GOTO_ABORT_NONE) {
+    homeMount = false;
+    trackingSyncSeconds = 0;
+    trackingState = TrackingNone;
+    lastTrackingState = TrackingNone;
+    gotoAbortState = GOTO_ABORT_NONE;
+    gotoStartTrackingOnSuccess = false;
+    SiderealClockSetInterval(siderealInterval);
+    setDeltaTrackingRate();
+  } else {
+    if (parkClearBacklash() == -1) return;
+    soundAlert();
+    trackingState = lastTrackingState;
+    lastTrackingState = TrackingNone;
+    SiderealClockSetInterval(siderealInterval);
+    homeMount = false;
+    if (AXIS2_TANGENT_ARM == OFF) atHome = true;
+    completePositionRecovery();
+    safetyLimitsOn = true;
+  }
 }
 ```
 
-**实际效果**：  
-关闭 HOME_SENSE 时，代码仍兼容原生 OnStep 的 Home 行为，不会因为新增安全锁导致无传感器设备无法使用。
+**修改带来的功能**
+
+无传感器坐标 Home 只有正常完成时才恢复位置可信。被限位或其他安全状态中断时保持 Tracking 关闭，并继续要求用户恢复位置
 
 ---
 
-### 18. MoveTo 安全中断保护：不把失败 GOTO 伪装成完成
+### 17. GOTO 完成时按中断类型分别收尾
 
-- **文件**：`MoveTo.ino`
-- **修改逻辑**：如果 GOTO 过程中被限位或安全逻辑中断，`moveTo()` 不再恢复为正常 GOTO done，而是保持 TrackingNone，并要求重新 Home。
+- **对照基准**：原始 `MoveTo.ino` 在 GOTO 结束后统一恢复 `lastTrackingState` 并报告完成
+- **修改文件**：`Goto.ino`、`MoveTo.ino`
+- **修改逻辑**：启动前记录一次性 Tracking 请求，结束后按正常完成、普通停止、物理停止和位置丢失分别处理
 
 ```cpp
-if (gotoAbortedBySafety) {
+// Goto.ino
+const bool requestTrackingAfterSuccess =
+  trackingState == TrackingNone &&
+  timeWasSet && dateWasSet &&
+  positionReady() &&
+  parkStatus == NotParked &&
+  !isHoming();
+
+CommandErrors result =
+  goTo(Axis1, Axis2, Axis1Alt, Axis2Alt, thisPierSide);
+
+if (result == CE_NONE)
+  gotoStartTrackingOnSuccess = requestTrackingAfterSuccess;
+```
+
+```cpp
+// MoveTo.ino
+if (completedGotoState == GOTO_ABORT_POSITION_LOST ||
+    !positionReady()) {
+
+  trackingState = TrackingNone;
+  lastTrackingState = TrackingNone;
+  if (generalError == ERR_NONE) generalError = ERR_LIMIT_SENSE;
+
+} else if (completedGotoState == GOTO_ABORT_HARD_STOP) {
+
   trackingState = TrackingNone;
   lastTrackingState = TrackingNone;
 
-  SiderealClockSetInterval(siderealInterval);
-  setDeltaTrackingRate();
+} else {
 
-  if (generalError == ERR_NONE) generalError = ERR_LIMIT_SENSE;
+  trackingState = lastTrackingState;
+  lastTrackingState = TrackingNone;
 
-  gotoAbortedBySafety = false;
-  gotoRequiresHomeAfterAbort = true;
+  if (completedGotoState == GOTO_ABORT_NONE && startTracking)
+    trackingState = TrackingSidereal;
 
-  VLF("MSG: Goto failed by safety abort; home required");
+  if (completedGotoState == GOTO_ABORT_NONE &&
+      trackingState == TrackingSidereal) {
+    trackingSyncSeconds = 5;
+  }
 }
+
+gotoAbortState = GOTO_ABORT_NONE;
+gotoStartTrackingOnSuccess = false;
 ```
 
-**实际效果**：  
-限位急停后，N.I.N.A. / ASCOM 不会被误导为 GOTO 已经正常完成。
+**修改带来的功能**
+
+安全中断不会再走正常 GOTO done 流程。只有正常到达才允许自动 Tracking 和 5 秒坐标同步窗口，避免出现失败 GOTO 后的幽灵 Tracking
 
 ---
 
-### 19. stopSlewingAndTracking() 标记安全中断
+### 18. stopSlewingAndTracking() 标记安全中断等级
 
-- **文件**：`OnStep.ino`
-- **修改位置**：`stopSlewingAndTracking()`
-- **修改逻辑**：GOTO 过程中只要不是普通 `SS_ALL_FAST` 停止，就标记为安全中断，并要求重新 Home。
+- **对照基准**：原始函数只负责停止对应运动，没有位置恢复等级
+- **修改文件**：`OnStep.ino`
+- **修改逻辑**：驱动故障、物理限位和普通软件停止分别写入不同的 GOTO 中断类型
 
 ```cpp
+if (ss == SS_LIMIT_HARD) {
+  invalidatePositionReference();
+  safetyLimitsOn = false;
+
+  if (trackingState == TrackingMoveTo)
+    gotoAbortState = GOTO_ABORT_POSITION_LOST;
+}
+
+if (ss == SS_LIMIT_PHYSICAL) {
+  gotoStartTrackingOnSuccess = false;
+
+#if HOME_REQUIRED_AFTER_LIMIT == ON
+  #if HOME_SENSE == OFF
+    requireCoordinateHomeRecovery();
+  #else
+    invalidatePositionReference();
+  #endif
+
+  safetyLimitsOn = false;
+  if (trackingState == TrackingMoveTo)
+    gotoAbortState = GOTO_ABORT_POSITION_LOST;
+#else
+  if (trackingState == TrackingMoveTo)
+    gotoAbortState = GOTO_ABORT_HARD_STOP;
+#endif
+}
+
 if (trackingState == TrackingMoveTo) {
-  if (ss != SS_ALL_FAST) {
-    gotoAbortedBySafety = true;
-    gotoRequiresHomeAfterAbort = true;
-  }
+  gotoStartTrackingOnSuccess = false;
 
-  if (!abortGoto) {
-    abortGoto = StartAbortGoto;
-    VLF("MSG: Goto aborted");
-  }
+  if (ss != SS_ALL_FAST && gotoAbortState == GOTO_ABORT_NONE)
+    gotoAbortState = GOTO_ABORT_STOPPED;
+
+  if (!abortGoto) abortGoto = StartAbortGoto;
 }
 ```
 
-**实际效果**：  
-GOTO 中遇到限位、低高度、安全停止等情况时，系统不会继续相信当前位置坐标。
+**修改带来的功能**
+
+更严重的位置丢失状态不会被后续普通停止覆盖。`HOME_REQUIRED_AFTER_LIMIT` 可以决定物理限位后是否强制重新 Home
 
 ---
 
-### 20. Axis1 机械限位与低空 GOTO 说明
+### 19. 标记 MaxESP3 共享模式引脚并增加编译校验
 
-- **文件**：`Config.h`
-- **当前配置**：
-
-```cpp
-#define AXIS1_LIMIT_MIN              -92
-#define AXIS1_LIMIT_MAX               92
-```
-
-这不是 Horizon Limit，而是 GEM 模式下 Axis1 / HA 的机械运动范围限制。低空目标尤其容易接近或超过这个范围，因此 N.I.N.A. 可能报：
-
-```text
-SlewError: Coordinates outside limits
-```
-
-若需要给地平线附近留少量余量，可考虑：
+- **对照基准**：原始 MaxESP3 定义了相同的 M0 与 M1 引脚，但没有声明独立模式驱动器需要双轴同步切换
+- **修改文件**：`src/pinmaps/Pins.MaxESP3.h`、`src/pinmaps/Validate.MaxESP3.h`、`Validate.h`、`src/sd_drivers/Validate.TMC2209.h`
+- **修改逻辑**：调整当前控制板引脚，显式标记共享模式引脚，并要求 TMC2209 双轴配置一致
 
 ```cpp
-#define AXIS1_LIMIT_MIN             -115
-#define AXIS1_LIMIT_MAX              115
+// Pins.MaxESP3.h 当前控制板引脚
+#define Aux2                  2
+#define Aux3                 21
+#define Aux4                 22
+#define Aux5                 25
+#define Aux6                 15
+#define Aux7                 39
+#define Aux8                 12
+
+#define PpsPin               36
+#define LimitPin           Aux7
+
+#define Axis1_EN              4
+#define Axis1_STEP           18
+#define Axis1_DIR            19
+#define Axis1_HOME         Aux5
+
+#define Axis2_EN         SHARED
+#define Axis2_STEP           27
+#define Axis2_DIR            26
+#define Axis2_HOME         Aux6
 ```
 
-不建议直接放到 `±180°`，否则可能增加撞三脚架、绕线或错误墩侧路径风险。
+```cpp
+// Pins.MaxESP3.h
+#define Axis1_M0 13
+#define Axis1_M1 14
+#define Axis2_M0 13
+#define Axis2_M1 14
+
+#define AXIS12_DRIVER_MODE_PINS_SHARED
+```
+
+```cpp
+// Validate.h
+#if defined(AXIS12_DRIVER_MODE_PINS_SHARED) && \
+    (AXIS1_DRIVER_MODEL == TMC2209 || AXIS2_DRIVER_MODEL == TMC2209)
+
+  #if AXIS1_DRIVER_MODEL != TMC2209 || AXIS2_DRIVER_MODEL != TMC2209
+    #error "Configuration (Config.h): shared M0/M1 pins require TMC2209 on both Axis1 and Axis2."
+  #endif
+
+  #if AXIS1_DRIVER_MICROSTEPS != AXIS2_DRIVER_MICROSTEPS
+    #error "Configuration (Config.h): shared TMC2209 M0/M1 pins require equal Axis1/Axis2 tracking microsteps."
+  #endif
+
+  #if AXIS1_DRIVER_MICROSTEPS_GOTO != AXIS2_DRIVER_MICROSTEPS_GOTO
+    #error "Configuration (Config.h): shared TMC2209 M0/M1 pins require equal Axis1/Axis2 Goto microsteps."
+  #endif
+
+  #if MODE_SWITCH_BEFORE_SLEW != OFF
+    #error "Configuration (Config.h): shared TMC2209 M0/M1 pins require on-the-fly mode switching."
+  #endif
+
+  #define AXIS12_TMC2209_MODE_SHARED
+#endif
+```
+
+**修改带来的功能**
+
+Home、Limit、PPS、Axis1 Enable 和 Axis1 Dir 已按当前控制板重新分配。对应的引脚占用检查也同步修改。双轴驱动型号和细分不一致时会在编译阶段报错，避免生成可以启动但运动比例错误的固件。当前仓库默认驱动仍为 `TMC5160_QUIET`，TMC2209 共享逻辑需要按实际硬件启用
+
+---
+
+### 20. MaxESP3 TMC2209 双轴同步切换细分
+
+- **对照基准**：原始 Timer 逻辑分别判断 Axis1 与 Axis2 的 GOTO 模式，并在两个电机中断中独立切换
+- **修改文件**：`Timer.ino`、`StepMode.ino`
+- **修改逻辑**：任一轴需要 GOTO 细分时双轴共同进入 GOTO 模式，切换前等待两个轴都处于可表示位置
+
+```cpp
+// Timer.ino
+gotoRateAxis1 =
+  thisTimerRateAxis1 < AXIS1_DRIVER_SWITCH_RATE ||
+  thisTimerRateAxis2 < AXIS2_DRIVER_SWITCH_RATE;
+
+gotoRateAxis2 = gotoRateAxis1;
+```
+
+```cpp
+bool axis1Ready =
+  (!inbacklashAxis1 && posAxis1 == (long)targetAxis1.part.m) ||
+  ((posAxis1 + blAxis1) % axis1StepsGoto == 0);
+
+bool axis2Ready =
+  (!inbacklashAxis2 && posAxis2 == (long)targetAxis2.part.m) ||
+  ((posAxis2 + blAxis2) % axis2StepsGoto == 0);
+
+if (!axis1Ready || !axis2Ready) return;
+
+a1CLEAR;
+a2CLEAR;
+
+if (gotoRateAxis1) {
+  axis1DriverGotoFast();
+  gotoModeAxis1 = true;
+  gotoModeAxis2 = true;
+} else {
+  axis1DriverTrackingFast();
+  gotoModeAxis1 = false;
+  gotoModeAxis2 = false;
+}
+```
+
+```cpp
+// StepMode.ino
+#ifdef AXIS12_TMC2209_MODE_SHARED
+  stepAxis1 = axis1StepsGoto;
+  stepAxis2 = axis2StepsGoto;
+#endif
+```
+
+**修改带来的功能**
+
+一个轴先减速时不会单独改变另一个轴的硬件细分。双轴硬件模式与软件步距保持一致，MaxESP3 独立模式 TMC2209 可以使用 64 细分跟踪和 32 细分 GOTO
 
 ---
 
@@ -681,65 +1039,66 @@ SlewError: Coordinates outside limits
 ```text
 上电
   ↓
-MOTOR_HOLD_ON_BOOT 使能电机保持
+MOTOR_HOLD_ON_BOOT 使能双轴驱动器
   ↓
-trackingState = TrackingNone
+Tracking 保持关闭
   ↓
-systemHasHomed = false
+HOME_REQUIRED_ON_BOOT 要求位置确认
   ↓
-手动方向键允许移动
+手动方向键仍可移动
   ↓
-GOTO / Tracking 被拦截
+GOTO、Sync、Park 和 Tracking 被锁定
   ↓
-执行 Find Home 或 Set Home
+执行 Find Home 或人工确认后的 Set Home
   ↓
-成功后 systemHasHomed = true
+positionReady() 返回 true
   ↓
-允许 N.I.N.A. / ASCOM GOTO 与 Tracking
+开放自动指向与跟踪
 ```
 
 ### 自动 Find Home 流程
 
 ```text
-ST4 East + West 长按 3 秒 / APP Find Home
+客户端 Find Home
+或 ST4 East 与 West 长按 3 秒
   ↓
-FH_FAST 快速寻找 Home switch
+FH_FAST 快速寻找 Home 开关
   ↓
-FH_IDLE
+FH_IDLE 等待双轴停止
   ↓
-FH_SLOW 慢速精找 Home switch
+FH_SLOW 慢速精找 Home 开关
   ↓
-FH_IDLE2
+FH_IDLE2 等待双轴停止
   ↓
-FH_OFFSET 根据 HOME_OFFSET_AXIS1/2 和 HOME_OFFSET_RATE 执行偏置
+FH_OFFSET 执行双轴零位偏置
   ↓
-FH_DONE
+FH_DONE 重建起始坐标
   ↓
-initStartPosition()
+completePositionRecovery()
   ↓
-systemHasHomed = true
+允许 GOTO 与 Tracking
 ```
 
 ### 限位触发流程
 
 ```text
-LimitPin 触发
+LimitPin 稳定触发
   ↓
-判断当前运动方向
+读取手动方向或 GOTO 目标方向
   ↓
-写入 Axis1_LimitLock / Axis2_LimitLock
+记录 Axis1_LimitLock 与 Axis2_LimitLock
   ↓
-如果不是反向脱困方向：急停
+判断双轴是否都在远离限位
   ↓
-HOME_SENSE 启用时 systemHasHomed = false
+仍有轴朝危险方向运动
   ↓
-gotoRequiresHomeAfterAbort = true
+停止 Guide、GOTO 与 Tracking
   ↓
-禁止后续 GOTO / Tracking
+根据 HOME_REQUIRED_AFTER_LIMIT 标记位置恢复要求
   ↓
-允许反方向手动脱困
+允许相反方向手动脱困
   ↓
-重新 Find Home 或 Set Home 后解锁
+Find Home 或 Set Home 后恢复自动动作
 ```
 
 ---
@@ -747,52 +1106,67 @@ gotoRequiresHomeAfterAbort = true
 ## ✅ 当前代码行为总表
 
 | 功能场景 | 当前行为 |
-|---|---|
-| 开机 | 电机保持，Tracking 关闭，不自动建立 Home |
-| 未 Home 前手动方向键 | 允许移动 |
-| 未 Home 前 GOTO | 拦截，返回 standby |
-| 未 Home 前 Tracking | 拒绝开启 |
-| 触发物理限位 | 记录危险方向，急停 |
-| 限位后危险方向 | 静默拒绝 |
-| 限位后反方向 | 允许移动，用于脱困 |
-| 第一阶段 Home 超时 | 停止 Home，不进入第二阶段 |
-| 第二阶段 Home 超时 | 停止 Home，不进入第三阶段 |
-| 第三阶段偏置启动失败 | 停止 Home，不标记成功 |
-| Home 完成 | 设置 `systemHasHomed = true`，清理安全锁 |
-| Set Home | 手动确认坐标可信并解锁 |
-| HOME_SENSE OFF | 尽量保持原生 OnStep Home/GOTO 行为 |
-| LIMIT_SENSE OFF | 限位方向锁不参与控制 |
+| --- | --- |
+| 开机 | 双轴电机保持，Tracking 关闭，不自动建立 Home |
+| 未 Home 前手动移动 | 允许 |
+| 未 Home 前 GOTO 与 Sync | 返回 standby |
+| 未 Home 前开启 Tracking | 立即返回失败 |
+| 未 Home 前保存 Park | 拒绝 |
+| 客户端首次连接 | 只有位置可信时才报告 `H` |
+| ST4 East 与 West 长按 3 秒 | 启动快速 Find Home |
+| 第一阶段 Home | 按配置速度搜索约 360 度范围 |
+| 第二阶段 Home | 按配置速度精找约 6 度范围 |
+| 第三阶段 Home | 按双轴角度和速度执行零位偏置 |
+| Home 任一阶段失败 | 停止流程并保留位置恢复锁 |
+| Home 完成 | 重建坐标并开放自动动作 |
+| Set Home | 人工确认当前位置为机械零位并恢复位置可信 |
+| HOME_SENSE 关闭 | 可信坐标可用于返回 Home，完全失信时需要 Set Home |
+| 物理限位触发 | 记录危险方向并停止危险运动 |
+| 限位后继续向危险侧移动 | 拒绝 |
+| 限位后向相反方向移动 | 允许脱困 |
+| 限位释放并停稳 500 毫秒 | 清除方向锁 |
+| 驱动器硬故障 | 位置标记为不可信并停止运动 |
+| GOTO 普通停止 | 不报告正常到达，不启动新的 Tracking |
+| GOTO 位置丢失 | Tracking 关闭并要求 Home 或 Set Home |
+| MaxESP3 TMC2209 共享细分 | 双轴同步切换硬件模式和软件步距 |
 
 ---
 
 ## 💡 总结与建议
 
-这版补丁的重点不是简单地“锁死所有操作”，而是把风险动作和必要动作分开处理：
+本地固件相对原始 OnStep 4.24 的重点不是增加更多自动动作，而是让每个自动动作都建立在可信位置上
 
-- **GOTO / Tracking 属于自动动作，必须在坐标可信后才允许。**
-- **手动方向键属于救机动作，未 Home 时仍然保留。**
-- **物理限位触发后，危险方向锁死，但反方向必须允许。**
-- **Home 失败、超时或安全中断后，绝不伪装为 Home 成功。**
-- **只有 FH_DONE、Set Home 或 HOME_SENSE 关闭时的原生 Home 完成，才恢复坐标可信状态。**
+- 开机只保持电机，不默认相信坐标
+- GOTO、Sync、Park 和 Tracking 共用位置安全检查
+- 手动方向保留，便于找零和处理机械风险
+- 限位后只锁危险方向，允许反向脱困
+- Home 失败不会误报成功
+- GOTO 安全中断不会恢复成正常到达
+- MaxESP3 TMC2209 共享细分由双轴同步处理
 
-日常使用建议：
-
-```text
-1. 上电后先确认电机已保持
-2. 如有需要，可用手动方向键调整姿态
-3. 执行 Find Home
-4. 等待三阶段 Home 完成
-5. 再连接 N.I.N.A. 执行 GOTO、居中、拍摄
-6. 如触发限位，先反方向脱困，再重新 Find Home
-```
-
-低空目标建议：
+当前仓库带有一套具体硬件配置
 
 ```text
-Horizon Limit 推荐：:Sh+00#
-需要少量余量：:Sh-02#
-不建议长期使用：:Sh-10#
-福州低空目标若仍报 outside limits，可在机械安全确认后考虑 AXIS1_LIMIT ±110 或 ±115
+PINMAP                    MaxESP3
+MOUNT_TYPE                GEM
+TIME_LOCATION_SOURCE      DS3231
+AXIS1_DRIVER_MODEL        TMC5160_QUIET
+AXIS2_DRIVER_MODEL        TMC5160_QUIET
+AXIS1_DRIVER_MICROSTEPS   64
+AXIS2_DRIVER_MICROSTEPS   64
+AXIS1_DRIVER_MICROSTEPS_GOTO 32
+AXIS2_DRIVER_MICROSTEPS_GOTO 32
+SLEW_RATE_BASE_DESIRED    6.0 度每秒
+AXIS1_LIMIT               -180 到 180 度
+AXIS2_LIMIT               -90 到 90 度
 ```
 
-最终效果是：**开机不会溜车，未回零不会自动乱跑，手动仍可救机，撞限位后可以脱困，回零失败不会误解锁，N.I.N.A. / ASCOM 的 GOTO 与 Tracking 行为也更加可控**
+这套配置只适用于当前设备。刷写前应重新确认每度步数、驱动电流、电机方向、Home 极性、Limit 极性、回零偏置、软件范围和 MaxESP3 引脚。尤其不要把当前 Axis1 的正负 180 度直接视为其他赤道仪的安全范围
+
+推荐第一次测试时卸下镜筒或保持可随时断电，先低速验证双轴方向，再验证 Home 和 Limit。回零期间普通 `LimitPin` 处理会让位于 Home 状态机，因此传感器极性、回零方向和机械余量必须在正式使用前确认
+
+触发限位后先向相反方向手动脱困，再执行 Find Home。只有在人工确认赤道仪已经位于定义的机械零位时才使用 Set Home
+
+固件继续使用 OnStep 的 LX200 派生命令集，可以配合 OnStep App、ASCOM、N.I.N.A、Stellarium、SkySafari、INDI 和其他兼容客户端使用
+
+感谢 Howard Dutton 和 OnStep 社区维护原始项目。本地固件是 OnStep 4.24 的衍生版本，继续遵循 GNU General Public License，许可说明见 [LICENSE.txt](./LICENSE.txt)
