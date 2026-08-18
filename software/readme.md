@@ -1168,4 +1168,4 @@ AXIS2_LIMIT               -90 到 90 度
 
 固件继续使用 OnStep 的 LX200 派生命令集，可以配合 OnStep App、ASCOM、N.I.N.A、Stellarium、SkySafari、INDI 和其他兼容客户端使用
 
-感谢 Howard Dutton 和 OnStep 社区维护原始项目。本地固件是 OnStep 4.24 的衍生版本，继续遵循 GNU General Public License，许可说明见 [LICENSE.txt](./LICENSE.txt)
+感谢 Howard Dutton 和 OnStep 社区维护原始项目。本地固件是 OnStep 4.24 的衍生版本，继续遵循 GNU General Public License，许可说明见 [LICENSE.txt](https://github.com/Leo-John233/DIY-HarmonicEquatorialMount/blob/main/software/OnStep4.24-Modified/LICENSE.txt)
